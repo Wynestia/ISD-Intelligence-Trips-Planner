@@ -1,0 +1,36 @@
+# สรุปการอัปเกรด Prompt Engineering (Completion Walkthrough)
+
+ผมได้ทำการอัปเกรดระบบจาก Dynamic Few-shot + CoT เดิม ให้มีความฉลาดและแม่นยำขึ้นด้วยเทคนิคขั้นสูง 2 อย่างหลักๆ ครับ:
+
+## 1. Step-Back Prompting (การคิดเชิงหลักการ)
+ผมได้ปรับปรุงไฟล์ [chain_of_thought.txt](file:///c:/KMITL/Junior/ISD_project/prompts/experiment/chain_of_thought.txt) โดยเพิ่ม **Step 0: Step-Back Analysis**
+- **วิธีทำงาน:** ก่อนที่จะเลือกสถานที่ โมเดลจะวิเคราะห์ "หลักการกว้างๆ" ของทริปนั้นก่อน (เช่น ถ้าเป็นทริปเดท ต้องเน้นบรรยากาศและความเป็นส่วนตัว)
+- **ผลลัพธ์:** ช่วยให้แผนที่ออกมามี "ทิศทาง" ที่ชัดเจนและตรงโจทย์ในเชิงลึกมากขึ้น ไม่ใช่แค่สุ่มเลือกสถานที่ที่ใกล้เคียง
+
+## 2. Chain-of-Verification (CoVe - การตรวจสอบย้อนกลับ)
+ผมได้เพิ่มระบบ "Double-Check" ใน [call_client.py](file:///c:/KMITL/Junior/ISD_project/src/service/call_client.py) และสร้าง [verification_template.txt](file:///c:/KMITL/Junior/ISD_project/prompts/experiment/verification_template.txt)
+- **วิธีทำงาน:**
+    1. **Pass 1:** สร้างแผนเบื้องต้น (ใช้ Llama 3.1 8B เพื่อความเร็ว)
+    2. **Pass 2:** นำแผนที่ได้มาให้โมเดลที่ใหญ่กว่า (Llama 3.1 70B) ตรวจสอบความถูกต้องของวันเวลา ความสมเหตุสมผลของระยะทาง และความสอดคล้องกับงบประมาณ
+- **ผลลัพธ์:** ลดอาการ "Hallucination" (การมโนสถานที่หรือเวลา) ได้อย่างมีประสิทธิภาพ
+
+## วิธีการใช้งานใหม่
+ในคลาส [GroqTravelAnalyst](file:///c:/KMITL/Junior/ISD_project/src/service/call_client.py#6-81) สามารถเรียกใช้งานแบบ Verify หรือไม่ก็ได้:
+
+```python
+# แบบปกติ (ทำ CoVe 2 รอบ เพื่อความแม่นยำสูงสุด)
+result = analyst.analyze_trip("อยากพาแฟนไปเดทริมน้ำ", verify=True)
+
+# แบบเร็ว (ทำรอบเดียว)
+result = analyst.analyze_trip("หิวข้าวแถวสยาม", verify=False)
+```
+
+> [!TIP]
+> การใช้ `verify=True` จะใช้ Token มากขึ้นและใช้เวลานานขึ้นเล็กน้อย แต่จะได้แผนที่มีความน่าเชื่อถือสูงกว่ามาก เหมาะสำหรับทริปที่ซับซ้อนครับ
+
+---
+
+### รายการไฟล์ที่เกี่ยวข้อง
+- [chain_of_thought.txt](file:///c:/KMITL/Junior/ISD_project/prompts/experiment/chain_of_thought.txt) (อัปเดต Step-Back)
+- [call_client.py](file:///c:/KMITL/Junior/ISD_project/src/service/call_client.py) (อัปเดต CoVe Logic)
+- [verification_template.txt](file:///c:/KMITL/Junior/ISD_project/prompts/experiment/verification_template.txt) (NEW: Template สำหรับ Verifier)

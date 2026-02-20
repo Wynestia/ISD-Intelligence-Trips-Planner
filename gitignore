@@ -17,4 +17,4 @@ build/
 # Unit test / coverage reports
 .pytest_cache/
 htmlcov/
-.coverage
+.coverageg
