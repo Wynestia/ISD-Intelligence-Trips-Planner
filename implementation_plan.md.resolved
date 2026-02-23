@@ -1,0 +1,54 @@
+# แผนการพัฒนา Prompt Engineering ขั้นสูง (Advanced Prompt Engineering Plan)
+
+คุณมีพื้นฐานที่แข็งแรงมากแล้ว (Dynamic Few-shot + CoT) ขั้นตอนต่อไปคือการเพิ่ม "ความสมเหตุสมผล" (Reasoning Integrity) และ "ความละเอียด" (Granularity) ของผลลัพธ์ครับ
+
+## Proposed Changes
+
+### 1. Self-Consistency (CoT-SC)
+**แนวคิด:** แทนที่จะรันรอบเดียวแล้วเชื่อเลย ให้รัน 3-5 รอบ (Sampling) แล้วเลือกคำตอบที่ "สอดคล้องที่สุด" โดยใช้โมเดลอีกตัวเป็น "Judge"
+- **การนำไปใช้:** 
+    - ปรับ [analyze_trip](file:///c:/KMITL/Junior/ISD_project/src/service/call_client.py#35-81) ใน [call_client.py](file:///c:/KMITL/Junior/ISD_project/src/service/call_client.py) ให้ทำงานแบบขนาน (Parallel) เพื่อส่ง Request ไปยัง Groq หลายๆ ครั้งพร้อมกัน
+    - เพิ่มขั้นตอน `Pass 3: Best Candidate Selection` โดยส่งคำตอบทั้งหมดไปให้ Llama 3.1 70B เลือกอันที่ดีที่สุด หรือรวมจุดเด่นของแต่ละอันเข้าด้วยกัน
+- **ประโยชน์:** ลดปัญหา Hallucination และเพิ่มความเสถียรของแผนการเดินทาง
+
+---
+
+### 2. Chain-of-Verification (CoVe)
+**แนวคิด:** หลังจากสร้างแผนเสร็จ ให้มีอีก Prompt หนึ่งมา "ตรวจสอบตัวเอง"
+- **ขั้นตอน:**
+    1. **Baseline Response:** สร้างแผนปกติ
+    2. **Verification Questions:** สร้างคำถามตรวจสอบ เช่น "ร้านนี้เปิดวันจันทร์ไหม?" "เวลาเดินทางระหว่าง A ไป B ทันจริงไหม?"
+    3. **Final Verified Response:** ปรับแก้แผนตามผลการตรวจสอบ
+- **การนำไปใช้:** เพิ่ม Method ใน [GroqTravelAnalyst](file:///c:/KMITL/Junior/ISD_project/src/service/call_client.py#6-81) สำหรับการรันรอบที่ 2
+
+---
+
+### 3. Step-Back Prompting
+**แนวคิด:** ก่อนจะเจาะจงสถานที่ ให้โมเดลนึกถึง "หลักการกว้างๆ" (Abstract Principles) ก่อน
+- **ตัวอย่าง:** ถ้าผู้ใช้บอก "พาแฟนไปเดท" โมเดลควร Step Back มาคิดว่า "องค์ประกอบของเดทที่ดีคืออะไร? (บรรยากาศ, ความส่วนตัว, การเดินทาง)"
+- **การนำไปใช้:** ปรับ [chain_of_thought.txt](file:///c:/KMITL/Junior/ISD_project/prompts/experiment/chain_of_thought.txt) ให้เริ่มจาก `Step 0: Step-Back Analysis`
+
+---
+
+### 4. Least-to-Most Prompting
+**แนวคิด:** แบ่งงานใหญ่ออกเป็นงานย่อย
+- **ขั้นตอน:**
+    1. วิเคราะห์ `Missing Info` และ `Preferences` ให้ขาดก่อน (Pass 1)
+    2. นำผลลัพธ์จาก Pass 1 มาสร้าง `Plan` (Pass 2)
+- **การนำไปใช้:** แยก Prompt ระหว่างการสกัดข้อมูล (Data Extraction) และการวางแผน (Planning)
+
+---
+
+### 5. Systematic Optimization with DSPy
+**แนวคิด:** หากต้องการทำเป็นระบบระยะยาว แนะนำให้ลองศึกษา **DSPy**
+- จะช่วยเปลี่ยนการเขียน Prompt แบบ Manual ให้เป็นการ "Optimize" ผ่านชุดข้อมูล (Evaluation Set) ทำให้ไม่ต้องแก้ Text Prompt เองบ่อยๆ
+
+## Verification Plan
+
+### Automated Tests
+- ทดสอบการเรียก [analyze_trip](file:///c:/KMITL/Junior/ISD_project/src/service/call_client.py#35-81) ด้วยคำถามที่คลุมเครือ (เช่น "อยากเที่ยว") เพื่อดูว่า `Missing Info` และ `Self-Consistency` ทำงานถูกต้องหรือไม่
+- รัน Benchmark เปรียบเทียบระหว่าง Single-pass CoT กับ CoVe
+
+### Manual Verification
+- ตรวจสอบความสมเหตุสมผลของเวลาเดินทางในแผนที่สร้างขึ้น
+- ตรวจสอบว่า `Step-Back Analysis` ช่วยให้แผนดูมี "มิติ" มากขึ้นหรือไม่
