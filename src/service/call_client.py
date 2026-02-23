@@ -121,12 +121,12 @@ def print_result(result_dict):
     print("=" * 50)
     
 
-# --- รันโปรแกรม ---
-if __name__ == "__main__":
-    MY_KEY = os.environ.get("GROQ_API_KEY")
-    if not MY_KEY:
-        raise EnvironmentError("กรุณา set GROQ_API_KEY ใน environment variable")
+# # --- รันโปรแกรม ---
+# if __name__ == "__main__":
+#     MY_KEY = os.environ.get("GROQ_API_KEY")
+#     if not MY_KEY:
+#         raise EnvironmentError("กรุณา set GROQ_API_KEY ใน environment variable")
 
-    analyst = GroqTravelAnalyst(api_key=MY_KEY)
-    result = analyst.analyze_trip("มีเงิน 1500 ไปเที่ยวชิค ๆ คูล 1 วันไปคนเดียวเท่ ๆ ในกรุงเทพ", n_samples=3, verify=True, evaluate=True)
-    print_result(result)
+#     analyst = GroqTravelAnalyst(api_key=MY_KEY)
+#     result = analyst.analyze_trip("มีเงิน 1500 ไปเที่ยวชิค ๆ คูล 1 วันไปคนเดียวเท่ ๆ ในกรุงเทพ", n_samples=3, verify=True, evaluate=True)
+#     print_result(result)
