@@ -48,7 +48,14 @@ Thumbs.db
 *.swp
 *.swo
 
-# LLM
+# ─── Python & LLM ─────────────────────────────────────
 .venv/
+__pycache__/
+*.py[cod]
+
+# ─── Notebooks & Testing ──────────────────────────────
 notebooks/
 test/
+tests/
+.ipynb_checkpoints/
+
