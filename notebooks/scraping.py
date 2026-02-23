@@ -237,7 +237,7 @@ print(f"Embeddings shape: {embeddings.shape}")
 import chromadb
 
 # บันทึกลง disk โฟลเดอร์ชื่อ chroma_db
-client = chromadb.PersistentClient(path="./chroma_db")
+client = chromadb.PersistentClient(path="C:\Desktop\ISD\ISD-Intelligence-Trips-Planner\chroma_db")
 
 try:
     client.delete_collection("travel_thailand")
