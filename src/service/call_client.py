@@ -128,5 +128,5 @@ if __name__ == "__main__":
         raise EnvironmentError("กรุณา set GROQ_API_KEY ใน environment variable")
 
     analyst = GroqTravelAnalyst(api_key=MY_KEY)
-    result = analyst.analyze_trip("อยากพาแฟนไปเดทริมน้ำ", n_samples=3, verify=True, evaluate=True)
+    result = analyst.analyze_trip("มีเงิน 1500 ไปเที่ยวชิค ๆ คูล 1 วันไปคนเดียวเท่ ๆ ในกรุงเทพ", n_samples=3, verify=True, evaluate=True)
     print_result(result)
