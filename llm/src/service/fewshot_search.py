@@ -34,14 +34,59 @@ class FewShotSearchEngine:
         print(f"✅ สร้าง FAISS index สำเร็จ — dim={dim}")
         return index
 
-    def search(self, user_input: str) -> list:
+    def search(self, user_input: str, use_mmr: bool = True, lambda_param: float = 0.5) -> list:
         query_vec = self.model.encode([user_input], convert_to_numpy=True)
-        distances, indices = self.index.search(query_vec, self.top_k)
+        # Fetch more candidates for MMR to select from
+        fetch_k = self.top_k * 3 if use_mmr else self.top_k
+        distances, indices = self.index.search(query_vec, fetch_k)
+
+        candidate_indices = indices[0]
+        if len(candidate_indices) == 0 or candidate_indices[0] == -1:
+            return []
+
+        if not use_mmr or len(candidate_indices) <= self.top_k:
+            selected_indices = candidate_indices[:self.top_k]
+        else:
+            # MMR Implementation
+            embeddings = self.model.encode(
+                [self.examples[idx]["input"] for idx in candidate_indices], 
+                convert_to_numpy=True
+            )
+            
+            selected_indices = []
+            unselected_indices = list(range(len(candidate_indices)))
+            
+            # 1. Start with the most similar one
+            first_idx = unselected_indices.pop(0)
+            selected_indices.append(first_idx)
+            
+            # 2. Iteratively pick candidates based on MMR
+            while len(selected_indices) < self.top_k and unselected_indices:
+                mmr_scores = []
+                for i in unselected_indices:
+                    # Similarity to query (1 / (1 + distance)) or similar conversion
+                    # FAISS IndexFlatL2 returns L2 squared distance
+                    sim_to_query = 1.0 / (1.0 + distances[0][i])
+                    
+                    # Similarity to already selected (max)
+                    sim_to_selected = max([
+                        np.dot(embeddings[i], embeddings[j]) / 
+                        (np.linalg.norm(embeddings[i]) * np.linalg.norm(embeddings[j]))
+                        for j in selected_indices
+                    ])
+                    
+                    score = lambda_param * sim_to_query - (1 - lambda_param) * sim_to_selected
+                    mmr_scores.append(score)
+                
+                best_mmr_idx_in_unselected = np.argmax(mmr_scores)
+                selected_indices.append(unselected_indices.pop(best_mmr_idx_in_unselected))
+            
+            selected_indices = [candidate_indices[i] for i in selected_indices]
 
         results = []
-        for rank, (idx, dist) in enumerate(zip(indices[0], distances[0]), 1):
+        for rank, idx in enumerate(selected_indices, 1):
             ex = self.examples[idx]
-            print(f"  #{rank} {ex['id']} | distance={dist:.4f} | \"{ex['input'][:40]}...\"")
+            print(f"  #{rank} {ex['id']} | \"{ex['input'][:40]}...\"")
             results.append(ex)
 
         return results

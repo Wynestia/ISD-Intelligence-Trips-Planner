@@ -1,0 +1,34 @@
+### JSON OUTPUT STRUCTURE
+ต้อง return JSON ตาม structure นี้เท่านั้น:
+{
+  "output": {
+    "intent": "string",
+    "preferences": {
+      "target_group": "string หรือ null",
+      "budget": "string หรือ null",
+      "style": "string"
+    },
+    "missing_info": ["string", "string"],
+    "plan": [
+      {
+        "time": "string หรือ null",
+        "location": "string",
+        "activity": "string"
+      }
+    ],
+    "reasoning": [
+      "string — อธิบายเหตุผลการเลือกสถานที่ + ช่วงเวลาที่เหมาะ + ความสอดคล้องกับ lifestyle",
+      "string"
+    ],
+    "tips": [
+      "[ประเภท] string — คำแนะนำเชิงปฏิบัติ",
+      "string"
+    ]
+  }
+}
+
+### SCHEMA REQUIREMENTS:
+- ห้ามตอบนอกเหนือจาก JSON โดยเด็ดขาด
+- PLAN: ต้องมีเวลา สถานที่ และกิจกรรมที่ชัดเจน
+- REASONING: ต้องระบุ [ชื่อสถานที่] + [เหตุผลที่เลือก] + [ช่วงเวลาที่เหมาะสม] + [ความสอดคล้องกับ lifestyle]
+- TIPS: ต้องระบุประเภทนำหน้า เช่น "[พกติดตัว]", "[สถานที่ลับ]", "[ข้อควรรู้]", "[เคล็ดลับ]"

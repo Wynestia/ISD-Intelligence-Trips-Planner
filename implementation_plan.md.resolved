@@ -1,0 +1,37 @@
+# Enhancing Trip Planner Prompt Engineering
+
+This plan introduces additional advanced Prompt Engineering techniques to improve the accuracy, logistics, and creativity of the generated travel plans.
+
+## Proposed Changes
+
+### [service] llm/src/service/
+
+#### [MODIFY] [fewshot_search.py](file:///c:/KMITL/Junior/ISD_project/llm/src/service/fewshot_search.py)
+- Implement **Maximal Marginal Relevance (MMR)** for example selection to ensure diversity in the few-shot block.
+- Add a similarity threshold to avoid irrelevant examples.
+
+#### [MODIFY] [call_client.py](file:///c:/KMITL/Junior/ISD_project/llm/src/service/call_client.py)
+- **Implement Decomposition (Planner Agent)**: Add a first pass that generates a "Trip Skeleton" (Zones and Categories) before the full plan generation.
+- **Implement Self-Correction Loop**: If the [TripJudge](file:///c:/KMITL/Junior/ISD_project/llm/src/evaluation/judge.py#4-70) returns `REVISION_NEEDED`, trigger one automated retry passing the judge's feedback to the analyst.
+- **Dynamic Sampling**: Adjust temperature for different stages (high for planning, low for verification).
+
+### [prompts] llm/prompts/
+
+#### [NEW] [planner_template.txt](file:///c:/KMITL/Junior/ISD_project/llm/prompts/base/planner_template.txt)
+- Create a template for the "Planner Agent" to outline the logistics and zones.
+
+#### [MODIFY] [system_prompt.txt](file:///c:/KMITL/Junior/ISD_project/llm/prompts/base/system_prompt.txt)
+- Update instructions to better handle "Logistics" and "Time Buffers" based on judge rubrics.
+
+## Verification Plan
+
+### Automated Tests
+- Create a test script `test/test_analysis_flow.py` that:
+    1. Runs a sample query.
+    2. Verifies the "Planner" stage is executed.
+    3. Verifies that the "Self-Correction" triggers if a low-quality plan is intentionally fed.
+- Run with: `python -m pytest test/test_analysis_flow.py` (Need to install pytest if not available, or use a simple script).
+
+### Manual Verification
+- Test with "hard" queries (e.g., very low budget, very specific locations) to see how MMR and Decomposition handle the edge cases.
+- Compare output quality with and without the "Planner" pass.
