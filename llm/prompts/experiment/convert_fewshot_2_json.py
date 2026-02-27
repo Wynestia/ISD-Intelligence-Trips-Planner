@@ -5,7 +5,7 @@ experiment_dir = os.path.dirname(os.path.abspath(__file__))
 
 file_order = (
     ['fewshot_header.txt'] +
-    [f'fewshot{i}.txt' for i in range(1, 24)] +
+    [f'fewshot{i}.txt' for i in range(1, 36)] +
     ['fewsoht_tail.txt']
 )
 

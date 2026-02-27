@@ -51,6 +51,7 @@ async def startup_event():
 
 class TripPlanRequest(BaseModel):
     query: str
+    session_id: str = "default"
     n_samples: int = 3
     verify: bool = True
     evaluate: bool = True
@@ -60,8 +61,17 @@ async def health_check():
     return {
         "status": "online",
         "service": "Wynestia Trip Planner API",
-        "analyst_initialized": analyst is not None
+        "analyst_initialized": analyst is not None,
+        "debug_mode": analyst.debug_mode if analyst else False
     }
+
+@app.post("/debug")
+async def toggle_debug(enabled: bool):
+    if analyst is None:
+        raise HTTPException(status_code=500, detail="Service not initialized")
+    analyst.set_debug_mode(enabled)
+    return {"debug_mode": enabled}
+
 
 @app.post("/analyze")
 async def analyze_trip(request: TripPlanRequest):
@@ -77,7 +87,8 @@ async def analyze_trip(request: TripPlanRequest):
             user_query=request.query,
             n_samples=request.n_samples,
             verify=request.verify,
-            evaluate=request.evaluate
+            evaluate=request.evaluate,
+            session_id=request.session_id
         )
         
         if "error" in result:
@@ -86,6 +97,28 @@ async def analyze_trip(request: TripPlanRequest):
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/history/{session_id}")
+async def clear_history(session_id: str):
+    """ล้าง conversation history ของ session ที่ระบุ"""
+    if analyst is None:
+        raise HTTPException(status_code=500, detail="Service not initialized")
+    analyst.clear_session_history(session_id)
+    return {"message": f"History cleared for session '{session_id}'"}
+
+
+@app.get("/history/{session_id}")
+async def get_history(session_id: str):
+    """ดู conversation history ของ session (สำหรับ debug)"""
+    if analyst is None:
+        raise HTTPException(status_code=500, detail="Service not initialized")
+    history = analyst._get_session_history(session_id)
+    return {
+        "session_id": session_id,
+        "message_count": len(history),
+        "messages": history.get_history()
+    }
 
 if __name__ == "__main__":
     # รันด้วย uvicorn

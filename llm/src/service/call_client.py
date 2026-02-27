@@ -4,6 +4,7 @@ import sys
 from concurrent.futures import ThreadPoolExecutor
 from groq import Groq
 from fewshot_search import FewShotSearchEngine
+from history_management import HistoryManagement
 
 # เพิ่ม path เพื่อให้ import จาก folder อื่นได้
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -23,6 +24,8 @@ class GroqTravelAnalyst:
         self.fewshot_engine = FewShotSearchEngine(examples_path=examples_path)
         # Init Evaluator
         self.evaluator = TripJudge(api_key=api_key)
+        # Init History Management (per session)
+        self._histories: dict[str, HistoryManagement] = {}
 
     def _load_prompt(self, filename, folder="base"):
         dir_map = {
@@ -37,16 +40,50 @@ class GroqTravelAnalyst:
 
     def _get_completion(self, system_prompt, user_prompt, model="llama-3.1-8b-instant", temperature=0.1):
         """Helper to call Groq API"""
+        
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt}
+        ]
+        
         completion = self.client.chat.completions.create(
             model=model,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ],
+            messages=messages,
             response_format={"type": "json_object"},
             temperature=temperature
         )
-        return completion.choices[0].message.content
+        
+        reply = completion.choices[0].message.content
+        
+        return reply
+
+    def _get_session_history(self, session_id: str) -> HistoryManagement:
+        """คืน HistoryManagement ของ session นั้น (สร้างใหม่ถ้ายังไม่มี)"""
+        if session_id not in self._histories:
+            self._histories[session_id] = HistoryManagement(api_key=self.api_key, model="llama-3.1-8b-instant")
+        return self._histories[session_id]
+
+    def _build_history_context(self, history: HistoryManagement) -> str:
+        """แปลง history เป็น string เพื่อส่งให้ LLM เป็น context"""
+        msgs = history.get_history()
+        if not msgs:
+            return ""
+        lines = []
+        for msg in msgs:
+            if msg["role"] == "user":
+                label = "ผู้ใช้"
+            elif msg["role"] == "assistant":
+                label = "ผู้ช่วย"
+            else:  # system (summary)
+                label = "[สรุปก่อนหน้า]"
+            lines.append(f"{label}: {msg['content']}")
+        return "\n".join(lines)
+
+    def clear_session_history(self, session_id: str) -> None:
+        """ล้าง history ของ session ที่ระบุ"""
+        if session_id in self._histories:
+            self._histories[session_id].clear()
+
 
     def _get_raw_completion(self, system_prompt, user_prompt, model="llama-3.1-8b-instant", temperature=0.7):
         """Helper for non-JSON completions (e.g. Planner)"""
@@ -60,32 +97,49 @@ class GroqTravelAnalyst:
         )
         return completion.choices[0].message.content
 
-    def analyze_trip(self, user_query: str, n_samples: int = 3, verify: bool = True, evaluate: bool = True) -> dict:
+    def analyze_trip(self, user_query: str, n_samples: int = 3, verify: bool = True, evaluate: bool = True, session_id: str = "default") -> dict:
         system_prompt = self._load_prompt('system_prompt.txt')
         task_template = self._load_prompt('task_template.txt')
         cot_prompt = self._load_prompt('chain_of_thought.txt', folder="experiment")
         rules = self._load_prompt('rules.txt')
         schema = self._load_prompt('schema.txt')
 
+        # ดึง history ของ session นี้ และสร้าง context string
+        history = self._get_session_history(session_id)
+        history_context = self._build_history_context(history)
+
         try:
             # --- Pass 0: Decomposition (Planner) ---
             print("🗺️ Planning trip strategy (Decomposition)...")
             planner_template = self._load_prompt('planner_template.txt')
+
+            planner_user_prompt = planner_template.format(user_query=user_query)
+            # ฉีด history context เข้าไปใน planner prompt (ถ้ามี)
+            if history_context:
+                planner_user_prompt = (
+                    f"[ประวัติการสนทนาก่อนหน้า]\n{history_context}\n\n"
+                    f"{planner_user_prompt}"
+                )
+
             trip_strategy = self._get_raw_completion(
-                "คุณคือผู้วางกลยุทธ์การท่องเที่ยวที่เชี่ยวชาญ คัดกรองย่านและลำดับความสำคัญ",
-                planner_template.format(user_query=user_query)
+                "คุณคือผู้วางกลยุทธ์การท่องเที่ยวที่เชี่ยวชาญ คัดกรองย่านและลำดับความสำคัญ โดยพิจารณาจากประวัติการสนทนาที่แนบมา (ถ้ามี)",
+                planner_user_prompt
             )
             print(f"📍 Strategy: {trip_strategy[:100]}...")
 
             # --- Pass 1: Self-Consistency (Parallel Sampling) ---
+            print("🚀 Running Self-Consistency with context...")
             fewshot_block = self.fewshot_engine.build_fewshot_block(user_query)
             
+            # เพิ่ม strategy เข้าไปใน user query ของ Generator
+            generator_query = f"{user_query}\n\n[TRIP STRATEGY TO FOLLOW]:\n{trip_strategy}"
+
             context = {
                 "examples":   fewshot_block,
                 "cot_prompt": cot_prompt,
                 "rules":      rules,
                 "schema":     schema,
-                "user_query": f"{user_query}\n\n[TRIP STRATEGY TO FOLLOW]:\n{trip_strategy}",
+                "user_query": generator_query,
             }
             full_prompt = task_template.format_map(context)
 
@@ -154,13 +208,21 @@ class GroqTravelAnalyst:
                     print("📊 Re-evaluating corrected plan...")
                     eval_report = self.evaluator.evaluate_plan(user_query, final_plan)
 
-                return {
+                result = {
                     "plan": json.loads(final_plan),
                     "evaluation": eval_report,
                     "strategy": trip_strategy
                 }
+                # บันทึก turn นี้เข้า history
+                history.add_user_message(user_query)
+                history.add_assistant_message(json.dumps(json.loads(final_plan), ensure_ascii=False))
+                return result
 
-            return {"plan": json.loads(final_plan)}
+            parsed_plan = json.loads(final_plan)
+            # บันทึก turn นี้เข้า history
+            history.add_user_message(user_query)
+            history.add_assistant_message(json.dumps(parsed_plan, ensure_ascii=False))
+            return {"plan": parsed_plan}
 
         except Exception as e:
             return {"error": str(e)}
