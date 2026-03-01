@@ -168,6 +168,73 @@ for item in data3:
     print(item['details'])
     print("---")
 
+def scrape_trueid(url):
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"}
+    res = requests.get(url, headers=headers)
+    soup = BeautifulSoup(res.text, "html.parser")
+    
+    results = []
+    # โครงสร้าง TrueID มักขึ้นด้วย h3 ตามด้วยตัวเลขเช่น "1. วัดพระเเก้ว"
+    headers_tags = soup.find_all(["h3", "h2"])
+    for header in headers_tags:
+        title = header.get_text(strip=True)
+        if not re.match(r'\d+\.', title):
+            continue
+            
+        description = ""
+        for sibling in header.find_next_siblings():
+            if sibling.name in ["h2", "h3", "h4"]:
+                break
+            if sibling.name in ["p", "div", "span"]:
+                text = sibling.get_text(strip=True)
+                # ข้ามข้อความที่เป็นลิงก์รีวิว
+                if text and not text.startswith("ดูรีวิวเต็มๆ") and not text.startswith("================"):
+                    description += text + " "
+                    
+        if title and description:
+            results.append({
+                "title": title,
+                "details": description.strip(),
+                "url": url
+            })
+    return results
+
+def scrape_wongnai(url):
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36", 
+        "Accept-Language": "th,en;q=0.9"
+    }
+    res = requests.get(url, headers=headers)
+    soup = BeautifulSoup(res.text, "html.parser")
+    
+    results = []
+    # Wongnai มักจะใช้ h2 เป็นชื่อสถานที่
+    places = soup.find_all(["h2", "h3"])
+    for place in places:
+        title = place.get_text(strip=True)
+        if not re.match(r'\d+\.', title):
+            continue
+            
+        description = ""
+        for sibling in place.find_next_siblings():
+            if sibling.name in ["h2", "h3"]:
+                break
+            if sibling.name in ["p", "div", "span"]:
+                text = sibling.get_text(strip=True)
+                if text:
+                    description += text + " "
+                    
+        if title and description:
+            results.append({
+                "title": title,
+                "details": description.strip(),
+                "url": url
+            })
+    return results
+
+data4 = scrape_trueid("https://travel.trueid.net/detail/DerKpM90N71")
+data5 = scrape_wongnai("https://www.wongnai.com/trips/attractions-in-thailand")
+
 import re
 
 def clean_text(text):
@@ -181,13 +248,14 @@ def clean_text(text):
 # ทำความสะอาดข้อมูลที่ scrape มา
 for item in data1:
     item["details"] = clean_text(item["details"])
-    full_text = f" {item['title']}, {item['details']}"
 for item in data2:
     item["details"] = clean_text(item["details"])
-    full_text = f" {item['title']}, {item['details']}"
 for item in data3:
     item["details"] = clean_text(item["details"])
-    full_text = f" {item['title']}, {item['details']}"
+for item in data4:
+    item["details"] = clean_text(item["details"])
+for item in data5:
+    item["details"] = clean_text(item["details"])
 
 def split_text(text, chunk_size=500, chunk_overlap=50):
     chunks = []
@@ -200,7 +268,7 @@ def split_text(text, chunk_size=500, chunk_overlap=50):
 
 chunks = []
 
-for dataset in [data1, data2, data3]:
+for dataset in [data1, data2, data3, data4, data5]:
     for item in dataset:
         # text ใช้แค่ details ไม่เอา title ซ้ำ
         details_text = clean_text(item['details'])
