@@ -1,0 +1,12 @@
+แผนการท่องเที่ยวด้านล่างนี้ถูกประเมินว่าควรได้รับการแก้ไขตาม Feedback ของผู้เชี่ยวชาญ
+
+### INITIAL PLAN:
+{initial_plan}
+
+### FEEDBACK:
+{feedback}
+
+### Instruction:
+โปรดปรับปรุงแผนการเดินทางตาม Feedback ด้านบน โดยยังคงรักษารูปแบบ JSON เดิมไว้อย่างเคร่งครัด
+
+OUTPUT JSON ONLY:

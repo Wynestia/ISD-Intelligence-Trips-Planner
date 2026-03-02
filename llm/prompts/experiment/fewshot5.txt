@@ -1,0 +1,79 @@
+{
+"id": "ex_005",
+"input": "อยากไปเที่ยวแบบติดแกลม งบไม่จำกัด หรูๆ เลิศๆ",
+"metadata": {
+    "group": "general",
+    "budget_level": "unlimited",
+    "style": [
+    "luxury",
+    "fine_dining",
+    "private_service",
+    "glamorous"
+    ],
+    "transport": "limousine_private"
+},
+"output": {
+    "intent": "วางแผนทริประดับลักชูรี (Luxury Experience)",
+    "preferences": {
+    "target_group": "ผู้ที่ชื่นชอบความหรูหรา บริการระดับพรีเมียม และสถานที่ที่มีดีไซน์โดดเด่น",
+    "budget": "unlimited (High-end / Ultra-luxury)",
+    "style": "เน้นความเลิศหรู (Glamorous), การบริการแบบส่วนตัว (Personalized Service) และสถานที่ที่ถ่ายรูปสวยมีระดับ"
+    },
+    "missing_info": [
+    "โอกาสพิเศษในการไปเที่ยว (เช่น วันเกิด, นัดเดทสำคัญ หรือการพักผ่อนส่วนตัว)",
+    "ความชื่นชอบเฉพาะด้าน (เช่น เน้นล่องเรือส่วนตัว, ทาน Fine Dining มิชลินสตาร์ หรือช้อปปิ้งสินค้าแบรนด์เนม)"
+    ],
+    "assumptions": [
+    "สมมติว่าเป็นทริปส่วนตัวหรือสองคน ไม่ใช่กรุ๊ปใหญ่ที่ต้องการบริการ Private Event",
+    "สมมติว่าต้องการ experience ที่ครบทั้ง dining, wellness และ entertainment ในวันเดียว",
+    "สมมติว่ามีรถส่วนตัวหรือ Limousine บริการตลอดวัน"
+    ],
+    "plan": [
+    {
+        "time": "11:00",
+        "location": "ICONSIAM โซน Iconluxe หรือ EmSphere ย่านสุขุมวิท",
+        "activity": "เริ่มต้นวันด้วยการช้อปปิ้งแบบ Personal Shopper พร้อมใช้บริการ Lounge พักผ่อนระดับ VIP",
+        "reasoning": "เริ่มช้อปปิ้งช่วง 11:00 แทนเช้า เพราะ Luxury Brand Boutique ส่วนใหญ่เปิด 11:00 และ Personal Shopper พร้อมให้บริการเต็มที่ช่วงนั้น ไม่แออัดและได้รับความสนใจเต็มที่"
+    },
+    {
+        "time": "13:00",
+        "location": "Blue by Alain Ducasse หรือ Le Normandie by Alain Ducasse",
+        "activity": "รับประทานอาหารกลางวันระดับ Fine Dining ชมวิวริมแม่น้ำเจ้าพระยา หรือสัมผัสรสชาติอาหารฝรั่งเศสระดับตำนาน",
+        "reasoning": "เลือกร้าน Alain Ducasse แทน Michelin Star อื่นในเมือง เพราะตำแหน่งริมน้ำให้ประสบการณ์ visual ที่เสริม dining ได้ดีกว่า และเป็น brand ที่มี prestige ระดับสากล"
+    },
+    {
+        "time": "15:30",
+        "location": "The Authors' Lounge — Mandarin Oriental หรือ Sindhorn Wellness by Resense",
+        "activity": "สัมผัสประสบการณ์ Afternoon Tea สุดหรู หรือเข้าโปรแกรม Spa Treatment แบบ Full-course",
+        "reasoning": "จัด wellness ช่วงบ่ายแทนการช้อปหรือเที่ยวต่อ เพราะเป็นจุดที่ luxury experience แตกต่างจาก premium ทั่วไปมากที่สุด และให้ร่างกาย recharge ก่อนช่วงเย็น"
+    },
+    {
+        "time": "18:00",
+        "location": "แม่น้ำเจ้าพระยา — Private Yacht Charter",
+        "activity": "ล่องเรือยอร์ชส่วนตัวชมพระอาทิตย์ตกกลางแม่น้ำเจ้าพระยา พร้อมจิบแชมเปญชั้นเลิศ",
+        "reasoning": "ล่องยอร์ชส่วนตัวแทนดินเนอร์ริมน้ำในร้าน เพราะให้ความเป็นส่วนตัวสูงสุดและ Golden Hour บนแม่น้ำเป็นประสบการณ์ที่ห้องอาหารใดก็ให้ไม่ได้"
+    },
+    {
+        "time": "21:00",
+        "location": "Lebua No.3 หรือ Stella — Capella Bangkok",
+        "activity": "ดื่มด่ำกับเครื่องดื่มที่ Rooftop Bar ระดับโลก ชมวิวเมืองกรุงเทพฯ ยามค่ำคืน",
+        "reasoning": "ปิดคืนที่ Rooftop Bar แทน hotel bar ทั่วไป เพราะ Lebua อยู่ใน World's 50 Best Bars และให้ visual ของเมืองที่สร้าง lasting impression สำหรับทริป luxury"
+    }
+    ],
+    "reasoning": [
+    "วางแผนภายใต้ assumption ว่าเป็นทริปส่วนตัว หากเป็นโอกาสพิเศษเช่นวันเกิด ควรแจ้ง Fine Dining ล่วงหน้าเพื่อจัด surprise decoration",
+    "เลือกสถานที่ที่มี signature ชัดเจนแต่ละแห่ง แทนการรวมสถานที่หรูหลายแห่งที่ทำให้ประสบการณ์จางลง",
+    "จัดเวลาให้แต่ละกิจกรรมมีระยะ buffer 30–60 นาที เพราะ luxury service ต้องการ pacing ที่ไม่รีบเร่ง",
+    "ไม่ยัดกิจกรรมเกิน 5 จุด แม้งบจะไม่จำกัด เพราะ quality of experience ต่ำลงเมื่อเหนื่อยเกินไป"
+    ],
+    "contingency": [
+    "หากสภาพอากาศไม่เหมาะกับล่องยอร์ช ให้เปลี่ยนเป็น Private Dining บนดาดฟ้าที่ Capella Bangkok แทน ซึ่งให้ความเป็นส่วนตัวในระดับใกล้เคียงกัน",
+    "หาก Fine Dining รอบที่จองเต็มกะทันหัน ให้ใช้ Concierge ของโรงแรมหาทางเลือกระดับเทียบเท่า ซึ่ง 5-star hotel Concierge มักมี connection ที่ช่วยได้"
+    ],
+    "tips": [
+    "จองล่วงหน้าอย่างน้อย 1–2 สัปดาห์ โดยเฉพาะ Fine Dining มิชลินและ Private Yacht",
+    "ใช้ Limousine Service ของโรงแรมระดับ 5 ดาว เพื่อความต่อเนื่องของประสบการณ์ตลอดวัน",
+    "ตรวจสอบ Dress Code ของแต่ละสถานที่ก่อน ส่วนใหญ่เน้น Smart Casual หรือ Formal"
+    ]
+}
+},
