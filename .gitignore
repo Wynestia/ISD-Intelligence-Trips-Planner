@@ -49,7 +49,6 @@ Thumbs.db
 *.swo
 
 # ─── Python & LLM ─────────────────────────────────────
-.venv/
 __pycache__/
 *.py[cod]
 
