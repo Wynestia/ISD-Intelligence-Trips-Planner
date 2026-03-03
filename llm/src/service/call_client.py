@@ -26,6 +26,9 @@ class GroqTravelAnalyst:
         self.evaluator = TripJudge(api_key=api_key)
         # Init History Management (per session)
         self._histories: dict[str, HistoryManagement] = {}
+        # Init RAG Retriever
+        self.rag_retriever = TravelRAGRetriever(chroma_path=chroma_path)
+
 
     def _load_prompt(self, filename, folder="base"):
         dir_map = {
