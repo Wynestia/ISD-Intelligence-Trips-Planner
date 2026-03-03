@@ -5,13 +5,14 @@ from concurrent.futures import ThreadPoolExecutor
 from groq import Groq
 from fewshot_search import FewShotSearchEngine
 from history_management import HistoryManagement
+from rag_retriever import TravelRAGRetriever
 
 # เพิ่ม path เพื่อให้ import จาก folder อื่นได้
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from evaluation.judge import TripJudge
 
 class GroqTravelAnalyst:
-    def __init__(self, api_key: str):
+    def __init__(self, api_key: str, chroma_path: str = r"C:\Desktop\ISD\ISD-Intelligence-Trips-Planner\chroma_db"):
         self.client = Groq(api_key=api_key)
         self.api_key = api_key
         self.base_dir = os.path.dirname(
@@ -26,6 +27,8 @@ class GroqTravelAnalyst:
         self.evaluator = TripJudge(api_key=api_key)
         # Init History Management (per session)
         self._histories: dict[str, HistoryManagement] = {}
+        # Init RAG Retriever
+        self.rag_retriever = TravelRAGRetriever(chroma_path=chroma_path)
 
     def _load_prompt(self, filename, folder="base"):
         dir_map = {
@@ -97,7 +100,7 @@ class GroqTravelAnalyst:
         )
         return completion.choices[0].message.content
 
-    def analyze_trip(self, user_query: str, n_samples: int = 3, verify: bool = True, evaluate: bool = True, session_id: str = "default") -> dict:
+    def analyze_trip(self, user_query: str, n_samples: int = 3, verify: bool = True, evaluate: bool = True, session_id: str = "default", rag_top_k: int = 5) -> dict:
         system_prompt = self._load_prompt('system_prompt.txt')
         task_template = self._load_prompt('task_template.txt')
         cot_prompt = self._load_prompt('chain_of_thought.txt', folder="experiment")
@@ -110,6 +113,9 @@ class GroqTravelAnalyst:
 
         try:
             # --- Pass 0: Decomposition (Planner) ---
+            print("🔍 Retrieving RAG context...")
+            rag_context = self.rag.format_context_block(user_query, top_k=rag_top_k)
+            print(f"📚 RAG context length: {len(rag_context)} chars")
             print("🗺️ Planning trip strategy (Decomposition)...")
             planner_template = self._load_prompt('planner_template.txt')
 
@@ -139,7 +145,10 @@ class GroqTravelAnalyst:
                 "cot_prompt": cot_prompt,
                 "rules":      rules,
                 "schema":     schema,
-                "user_query": generator_query,
+                "user_query": (
+    f"{rag_context}\n\n{generator_query}"
+    if rag_context else generator_query
+),
             }
             full_prompt = task_template.format_map(context)
 
@@ -163,6 +172,9 @@ class GroqTravelAnalyst:
                 all_candidates_str=all_candidates_str
             )
             
+            if rag_context:
+                judge_prompt = f"{rag_context}\n\n{judge_prompt}"
+
             best_result = self._get_completion(
                 "คุณคือผู้เชี่ยวชาญด้านการท่องเที่ยว ทำหน้าที่เป็นผู้ตัดสินประเมินแผนการเดินทาง",
                 judge_prompt,

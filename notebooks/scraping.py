@@ -1,3 +1,8 @@
+import subprocess
+import sys
+
+subprocess.check_call([sys.executable, "-m", "pip", "install", "requests", "beautifulsoup4", "sentence-transformers", "chromadb", "-q"])
+
 import requests
 from bs4 import BeautifulSoup
 import json
@@ -117,8 +122,6 @@ for item in data2:
     print(item["details"])
     print("---")
 
-    import re
-
 raw_text = """1. สาย Slow Life & Minimalist
 ไลฟ์สไตล์: ชอบตื่นสายๆ จิบกาแฟร้านที่ตกแต่งคุมโทน เดินเล่นถนนคนเดิน มองวิวทุ่งนาหรือภูเขาแบบไม่ต้องรีบไปไหน เชียงใหม่ (โซนแม่กำปอง/นิมมาน): คาเฟ่เยอะจนแวะไม่ครบ บรรยากาศชิลล์ระดับสิบ, น่าน: สโลว์ไลฟ์ของจริง ถนนสวย วัดงาม และความเงียบสงบที่หาไม่ได้ในเมืองกรุง, แม่ฮ่องสอน (ปาย): นั่งโง่ๆ ดูหมอก สัมผัสอากาศเย็นและวิถีชีวิตฮิปปี้เบาๆ
 
@@ -232,8 +235,126 @@ def scrape_wongnai(url):
             })
     return results
 
+def scrape_wongnai_cafe_bangkok(url):
+    """
+    Scrape คาเฟ่ must-go กรุงเทพฯ จาก Wongnai listings
+    URL: https://www.wongnai.com/listings/bangkok-must-go-cafe
+    โครงสร้างหน้านี้เป็น listing page ที่แสดงการ์ดร้านค้า
+    แต่ละร้านมีชื่อ, รายละเอียด/รีวิว, และที่อยู่
+    """
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept-Language": "th,en;q=0.9",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+        "Referer": "https://www.wongnai.com/"
+    }
+    res = requests.get(url, headers=headers)
+    soup = BeautifulSoup(res.text, "html.parser")
+
+    results = []
+
+    # --- แบบที่ 1: listing cards (div ที่มี class คล้าย venue-item หรือ -listing) ---
+    # Wongnai listings ใช้ class เช่น "venue-name", "venue-description", "venue-address"
+    venue_cards = soup.find_all("div", class_=re.compile(r"(venue|listing|restaurant|place)", re.I))
+    for card in venue_cards:
+        name_tag = card.find(class_=re.compile(r"(venue-name|name|title)", re.I))
+        if not name_tag:
+            name_tag = card.find(["h2", "h3", "h4"])
+        if not name_tag:
+            continue
+
+        title = name_tag.get_text(strip=True)
+        if not title or len(title) < 2:
+            continue
+
+        # ดึง description / review snippet
+        desc_tag = card.find(class_=re.compile(r"(description|review|detail|snippet|excerpt)", re.I))
+        description = desc_tag.get_text(strip=True) if desc_tag else ""
+
+        # ดึงที่อยู่เพิ่มเติม
+        addr_tag = card.find(class_=re.compile(r"(address|location|area)", re.I))
+        address = addr_tag.get_text(strip=True) if addr_tag else ""
+
+        details = " ".join(filter(None, [description, address])).strip()
+
+        if title and details:
+            results.append({
+                "title": title,
+                "details": details,
+                "url": url
+            })
+
+    # --- แบบที่ 2: fallback ถ้าไม่เจอ card structure ---
+    # ลองดึงจาก h2/h3 ที่ไม่มีเลขนำหน้า (เพราะ listing page ไม่มีเลข)
+    if not results:
+        headings = soup.find_all(["h2", "h3"])
+        for heading in headings:
+            title = heading.get_text(strip=True)
+            # กรอง navigation หรือ header หลักออก
+            if not title or len(title) < 3 or title in ["คาเฟ่", "กรุงเทพ", "Wongnai"]:
+                continue
+
+            description = ""
+            for sibling in heading.find_next_siblings():
+                if sibling.name in ["h2", "h3"]:
+                    break
+                if sibling.name in ["p", "span", "div"]:
+                    text = sibling.get_text(strip=True)
+                    if text and len(text) > 5:
+                        description += text + " "
+                        if len(description) > 300:  # จำกัดความยาว
+                            break
+
+            details = description.strip()
+            if title and details:
+                results.append({
+                    "title": title,
+                    "details": details,
+                    "url": url
+                })
+
+    # --- แบบที่ 3: fallback สำหรับ JSON-LD structured data ---
+    if not results:
+        script_tags = soup.find_all("script", type="application/ld+json")
+        for script in script_tags:
+            try:
+                data = json.loads(script.string)
+                # รองรับทั้ง object เดี่ยวและ list
+                items = data if isinstance(data, list) else [data]
+                for item in items:
+                    # ItemList schema
+                    if item.get("@type") == "ItemList":
+                        for list_item in item.get("itemListElement", []):
+                            name = list_item.get("name", "")
+                            description = list_item.get("description", "")
+                            if name:
+                                results.append({
+                                    "title": name,
+                                    "details": description,
+                                    "url": url
+                                })
+                    # LocalBusiness / Restaurant schema
+                    elif item.get("@type") in ["LocalBusiness", "Restaurant", "CafeOrCoffeeShop", "FoodEstablishment"]:
+                        name = item.get("name", "")
+                        description = item.get("description", "")
+                        address_obj = item.get("address", {})
+                        address = address_obj.get("streetAddress", "") if isinstance(address_obj, dict) else str(address_obj)
+                        details = " ".join(filter(None, [description, address])).strip()
+                        if name:
+                            results.append({
+                                "title": name,
+                                "details": details,
+                                "url": url
+                            })
+            except Exception:
+                continue
+
+    return results
+
+
 data4 = scrape_trueid("https://travel.trueid.net/detail/DerKpM90N71")
 data5 = scrape_wongnai("https://www.wongnai.com/trips/attractions-in-thailand")
+data6 = scrape_wongnai_cafe_bangkok("https://www.wongnai.com/listings/bangkok-must-go-cafe")
 
 import re
 
@@ -255,6 +376,8 @@ for item in data3:
 for item in data4:
     item["details"] = clean_text(item["details"])
 for item in data5:
+    item["details"] = clean_text(item["details"])
+for item in data6:
     item["details"] = clean_text(item["details"])
 
 def split_text(text, chunk_size=500, chunk_overlap=50):
@@ -305,7 +428,7 @@ print(f"Embeddings shape: {embeddings.shape}")
 import chromadb
 
 # บันทึกลง disk โฟลเดอร์ชื่อ chroma_db
-client = chromadb.PersistentClient(path="C:\Desktop\ISD\ISD-Intelligence-Trips-Planner\chroma_db")
+client = chromadb.PersistentClient(path=r"C:\Desktop\ISD\ISD-Intelligence-Trips-Planner\chroma_db")
 
 try:
     client.delete_collection("travel_thailand")
