@@ -10,7 +10,7 @@ class FewShotSearchEngine:
         self,
         examples_path: str,
         model_name: str = "paraphrase-multilingual-MiniLM-L12-v2",
-        top_k: int = 3
+        top_k: int = 2
     ):
         self.top_k = top_k
         self.examples = self._load_examples(examples_path)

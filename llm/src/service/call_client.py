@@ -38,7 +38,7 @@ class GroqTravelAnalyst:
         with open(path, "r", encoding="utf-8") as f:
             return f.read()
 
-    def _get_completion(self, system_prompt, user_prompt, model="llama-3.1-8b-instant", temperature=0.1):
+    def _get_completion(self, system_prompt, user_prompt, model="llama-3.3-70b-versatile", temperature=0.1):
         """Helper to call Groq API"""
         
         messages = [
@@ -60,7 +60,7 @@ class GroqTravelAnalyst:
     def _get_session_history(self, session_id: str) -> HistoryManagement:
         """คืน HistoryManagement ของ session นั้น (สร้างใหม่ถ้ายังไม่มี)"""
         if session_id not in self._histories:
-            self._histories[session_id] = HistoryManagement(api_key=self.api_key, model="llama-3.1-8b-instant")
+            self._histories[session_id] = HistoryManagement(api_key=self.api_key, model="llama-3.3-70b-versatile")
         return self._histories[session_id]
 
     def _build_history_context(self, history: HistoryManagement) -> str:
@@ -85,7 +85,7 @@ class GroqTravelAnalyst:
             self._histories[session_id].clear()
 
 
-    def _get_raw_completion(self, system_prompt, user_prompt, model="llama-3.1-8b-instant", temperature=0.7):
+    def _get_raw_completion(self, system_prompt, user_prompt, model="llama-3.3-70b-versatile", temperature=0.7):
         """Helper for non-JSON completions (e.g. Planner)"""
         completion = self.client.chat.completions.create(
             model=model,
@@ -242,5 +242,5 @@ if __name__ == "__main__":
         raise EnvironmentError("กรุณา set GROQ_API_KEY ใน environment variable")
 
     analyst = GroqTravelAnalyst(api_key=MY_KEY)
-    result = analyst.analyze_trip("มีเงิน 1500 ไปเที่ยวชิค ๆ คูล 1 วันไปคนเดียวเท่ ๆ ในกรุงเทพ", n_samples=3, verify=True, evaluate=True)
+    result = analyst.analyze_trip("อยากเที่ยวคาเฟ่ในกรุงเทพมหานคร ภายใน 1 วันออกตั้งแต่ 11:00 อยู่ใกล้ BTS กินมัทฉะร้านดัง ยันคาเฟ่ถ่ายรูป", n_samples=3, verify=True, evaluate=True)
     print_result(result)
