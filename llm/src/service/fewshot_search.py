@@ -109,7 +109,7 @@ class FewShotSearchEngine:
         plan_text = "\n".join([
             f"- {p.get('time') or 'N/A'} | {p.get('location')}: {p.get('activity')}"
             for p in out.get("plan", [])
-        ])
+        ]) if out.get("plan") else "[]"
 
         # REASONING
         reasoning_text = "\n".join([

@@ -1760,6 +1760,38 @@
     }
   },
   {
+    "id": "ex_024",
+    "input": "อยากไปคาเฟ่",
+    "metadata": {
+      "group": "general",
+      "budget_level": null,
+      "style": [],
+      "transport": null,
+      "duration": null,
+      "location": null,
+      "items_to_add": []
+    },
+    "output": {
+      "intent": "ต้องการไปคาเฟ่ แต่ยังไม่มีข้อมูลเพียงพอในการแนะนำ",
+      "preferences": {
+        "target_group": null,
+        "budget": null,
+        "style": null
+      },
+      "missing_info": [
+        "อยู่แถวไหนหรืออยากไปย่านไหน",
+        "ไปกี่คน ไปคนเดียว กับเพื่อน หรือไปเดต",
+        "บรรยากาศที่อยากได้ เช่น เงียบๆ นั่งทำงาน / Instagram-worthy / สวนกลางแจ้ง",
+        "งบประมาณต่อหัวประมาณเท่าไหร่"
+      ],
+      "assumptions": [],
+      "plan": [],
+      "reasoning": [],
+      "contingency": [],
+      "tips": []
+    }
+  },
+  {
     "id": "ex_025",
     "input": "อยากไหว้พระขอพรเรื่องความรักและการงานในกรุงเทพ 1 วัน งบไม่เกิน 500 บาท",
     "metadata": {

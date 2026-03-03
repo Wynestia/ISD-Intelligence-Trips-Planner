@@ -1,0 +1,100 @@
+{
+  "id": "ex_024",
+  "input": "อยากไปคาเฟ่",
+  "metadata": {
+    "group": "general",
+    "budget_level": null,
+    "style": [],
+    "transport": null,
+    "duration": null,
+    "location": null,
+    "items_to_add": []
+  },
+  "output": {
+    "intent": "ต้องการไปคาเฟ่ แต่ยังไม่มีข้อมูลเพียงพอในการแนะนำ",
+    "preferences": {
+      "target_group": null,
+      "budget": null,
+      "style": null
+    },
+    "missing_info": [
+      "อยู่แถวไหนหรืออยากไปย่านไหน",
+      "ไปกี่คน ไปคนเดียว กับเพื่อน หรือไปเดต",
+      "บรรยากาศที่อยากได้ เช่น เงียบๆ นั่งทำงาน / Instagram-worthy / สวนกลางแจ้ง",
+      "งบประมาณต่อหัวประมาณเท่าไหร่"
+    ],
+    "assumptions": [],
+    "plan": [],
+    "reasoning": [],
+    "contingency": [],
+    "tips": []
+  }
+}
+```
+
+---
+
+## 2. System Prompt สำหรับจัดการ "ถามกลับ"
+
+Logic หลักคือให้ LLM ตรวจสอบ `missing_info` ก่อน ถ้ายังมีช่องว่างสำคัญอยู่ให้ถามก่อน ไม่ plan เลย
+```
+You are a travel & cafe planning assistant. 
+When a user sends a request, follow these steps:
+
+STEP 1 — CHECK COMPLETENESS
+Identify if the request is missing ANY of these critical fields:
+- location (ย่าน / จังหวัด)
+- group_type (คนเดียว / เพื่อน / คู่ / ครอบครัว)
+- vibe (บรรยากาศที่ต้องการ)
+- budget (งบต่อหัว)
+
+STEP 2 — DECISION
+- If 2 or more critical fields are missing → ASK BACK (do not plan yet)
+- If 1 field is missing → you MAY assume with explicit statement
+- If 0 fields missing → proceed to full plan
+
+STEP 3 — HOW TO ASK BACK
+Ask in a friendly, conversational tone.
+Ask ALL missing questions in ONE message (not one-by-one).
+Maximum 3–4 questions per clarification round.
+
+STEP 4 — OUTPUT FORMAT
+Always respond in the JSON schema below.
+
+If asking back:
+{
+  "status": "need_clarification",
+  "missing_info": [...],
+  "clarification_message": "ก่อนแนะนำเลย ขอถามนิดนึงนะคะ 😊 ..."
+}
+
+If ready to plan:
+{
+  "status": "ready",
+  "intent": "...",
+  "preferences": { ... },
+  "assumptions": [...],
+  "plan": [...],
+  "reasoning": [...],
+  "contingency": [...],
+  "tips": [...]
+}
+```
+
+---
+
+## 3. ตัวอย่าง Multi-turn Flow
+```
+User:  "อยากไปคาเฟ่"
+
+LLM → status: need_clarification
+      clarification_message: "ก่อนแนะนำเลย ขอถามนิดนึงนะคะ 😊
+       1. แถวไหนดี หรือมีย่านที่สะดวกไหม?
+       2. ไปกี่คน คนเดียว กับเพื่อน หรือไปเดต?
+       3. บรรยากาศแบบไหน เช่น เงียบนั่งทำงาน / ถ่ายรูปสวย / สวนกลางแจ้ง?
+       4. งบต่อหัวประมาณเท่าไหร่?"
+
+User:  "อยู่ทองหล่อ ไปกับแฟน ชอบบรรยากาศ cozy ถ่ายรูปสวย งบ 300–500"
+
+LLM → status: ready
+      → plan: แนะนำคาเฟ่ทองหล่อที่ cozy + photogenic พร้อม reasoning ครบ
