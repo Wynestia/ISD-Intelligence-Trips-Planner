@@ -427,8 +427,17 @@ print(f"Embeddings shape: {embeddings.shape}")
 
 import chromadb
 
-# บันทึกลง disk โฟลเดอร์ชื่อ chroma_db
-client = chromadb.PersistentClient(path=r"C:\Desktop\ISD\ISD-Intelligence-Trips-Planner\chroma_db")
+from pathlib import Path
+import chromadb
+
+# สร้าง path แบบ relative จากตำแหน่งไฟล์ script
+base_dir = Path(__file__).parent.parent
+db_path = base_dir / "chroma_db"
+
+# สร้าง folder ถ้ายังไม่มี
+db_path.mkdir(parents=True, exist_ok=True)
+
+client = chromadb.PersistentClient(path=str(db_path))
 
 try:
     client.delete_collection("travel_thailand")

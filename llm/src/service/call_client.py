@@ -114,7 +114,7 @@ class GroqTravelAnalyst:
         try:
             # --- Pass 0: Decomposition (Planner) ---
             print("🔍 Retrieving RAG context...")
-            rag_context = self.rag.format_context_block(user_query, top_k=rag_top_k)
+            rag_context = self.rag_retriever.format_context_block(user_query, top_k=rag_top_k)
             print(f"📚 RAG context length: {len(rag_context)} chars")
             print("🗺️ Planning trip strategy (Decomposition)...")
             planner_template = self._load_prompt('planner_template.txt')

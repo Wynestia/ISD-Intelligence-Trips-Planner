@@ -1,6 +1,7 @@
 import chromadb
 from sentence_transformers import SentenceTransformer
 from typing import Optional
+from pathlib import Path
 
 
 class TravelRAGRetriever:
@@ -10,7 +11,7 @@ class TravelRAGRetriever:
 
     def __init__(
         self,
-        chroma_path: str = r"C:\Desktop\ISD\ISD-Intelligence-Trips-Planner\chroma_db",
+        chroma_path: str = Path(__file__).parent.parent.parent / "chroma_db",
         collection_name: str = "travel_thailand",
         model_name: str = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
         top_k: int = 5,
