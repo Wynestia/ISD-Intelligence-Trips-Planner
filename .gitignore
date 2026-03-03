@@ -58,3 +58,4 @@ test/
 tests/
 .ipynb_checkpoints/
 
+chroma_db/
