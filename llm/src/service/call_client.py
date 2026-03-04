@@ -6,6 +6,7 @@ from groq import Groq
 from fewshot_search import FewShotSearchEngine
 from history_management import HistoryManagement
 from rag_retriever import TravelRAGRetriever
+from weather_service import get_weather_summary
 
 # เพิ่ม path เพื่อให้ import จาก folder อื่นได้
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -41,7 +42,7 @@ class GroqTravelAnalyst:
         with open(path, "r", encoding="utf-8") as f:
             return f.read()
 
-    def _get_completion(self, system_prompt, user_prompt, model="llama-3.3-70b-versatile", temperature=0.1):
+    def _get_completion(self, system_prompt, user_prompt, model="openai/gpt-oss-120b", temperature=0.1):
         """Helper to call Groq API"""
         
         messages = [
@@ -63,7 +64,7 @@ class GroqTravelAnalyst:
     def _get_session_history(self, session_id: str) -> HistoryManagement:
         """คืน HistoryManagement ของ session นั้น (สร้างใหม่ถ้ายังไม่มี)"""
         if session_id not in self._histories:
-            self._histories[session_id] = HistoryManagement(api_key=self.api_key, model="llama-3.3-70b-versatile")
+            self._histories[session_id] = HistoryManagement(api_key=self.api_key, model="openai/gpt-oss-120b")
         return self._histories[session_id]
 
     def _build_history_context(self, history: HistoryManagement) -> str:
@@ -87,8 +88,7 @@ class GroqTravelAnalyst:
         if session_id in self._histories:
             self._histories[session_id].clear()
 
-
-    def _get_raw_completion(self, system_prompt, user_prompt, model="llama-3.3-70b-versatile", temperature=0.7):
+    def _get_raw_completion(self, system_prompt, user_prompt, model="openai/gpt-oss-120b", temperature=0.7):
         """Helper for non-JSON completions (e.g. Planner)"""
         completion = self.client.chat.completions.create(
             model=model,
@@ -133,22 +133,36 @@ class GroqTravelAnalyst:
             )
             print(f"📍 Strategy: {trip_strategy[:100]}...")
 
+            # --- Pass X: Extract Location & Fetch Weather ---
+            print("🌤️ Fetching weather data...")
+            import re
+            loc_match = re.search(r'พื้นที่ที่ lock ไว้.*?[:：]\s*(?:\[)?([^\]\n]+)(?:\])?', trip_strategy)
+            weather_context = ""
+            if loc_match:
+                locked_loc = loc_match.group(1).strip()
+                print(f"   => Found location: {locked_loc}")
+                summary = get_weather_summary(locked_loc)
+                if summary:
+                    weather_context = f"\n{summary}\n"
+                    print(f"   => {summary}")
+                else:
+                    print("   => Could not fetch weather summary.")
+            else:
+                print("   => Could not extract locked location from strategy.")
+
             # --- Pass 1: Self-Consistency (Parallel Sampling) ---
             print("🚀 Running Self-Consistency with context...")
             fewshot_block = self.fewshot_engine.build_fewshot_block(user_query)
             
-            # เพิ่ม strategy เข้าไปใน user query ของ Generator
-            generator_query = f"{user_query}\n\n[TRIP STRATEGY TO FOLLOW]:\n{trip_strategy}"
+            # เพิ่ม strategy และ weather เข้าไปใน user query ของ Generator
+            combined_query = f"{user_query}\n\n[TRIP STRATEGY TO FOLLOW]:\n{trip_strategy}\n{weather_context}"
 
             context = {
                 "examples":   fewshot_block,
                 "cot_prompt": cot_prompt,
                 "rules":      rules,
                 "schema":     schema,
-                "user_query": (
-    f"{rag_context}\n\n{generator_query}"
-    if rag_context else generator_query
-),
+                "user_query": combined_query,
             }
             full_prompt = task_template.format_map(context)
 
@@ -178,7 +192,7 @@ class GroqTravelAnalyst:
             best_result = self._get_completion(
                 "คุณคือผู้เชี่ยวชาญด้านการท่องเที่ยว ทำหน้าที่เป็นผู้ตัดสินประเมินแผนการเดินทาง",
                 judge_prompt,
-                model="llama-3.3-70b-versatile"
+                model="openai/gpt-oss-120b"
             )
 
             # --- Pass 3: Chain-of-Verification (CoVe) ---
@@ -193,7 +207,7 @@ class GroqTravelAnalyst:
                 final_plan = self._get_completion(
                     "คุณเป็นผู้ตรวจสอบแผนการท่องเที่ยวที่พิถีพิถันและเข้มงวด ตรวจสอบให้แน่ใจว่าทุกรายละเอียดมีความสมจริง",
                     verify_prompt,
-                    model="llama-3.3-70b-versatile"
+                    model="openai/gpt-oss-120b"
                 )
 
             # --- Pass 4: LLM-as-a-Judge (Validation & Self-Correction) ---
@@ -213,7 +227,7 @@ class GroqTravelAnalyst:
                     final_plan = self._get_completion(
                         system_prompt,
                         correction_prompt + f"\n\n[JSON SCHEMA]:\n{schema}",
-                        model="llama-3.3-70b-versatile",
+                        model="openai/gpt-oss-120b",
                         temperature=0.2
                     )
                     # Re-evaluate after correction
@@ -247,12 +261,12 @@ def print_result(result_dict):
     print("=" * 50)
     
 
-# --- รันโปรแกรม ---
-if __name__ == "__main__":
-    MY_KEY = os.environ.get("GROQ_API_KEY")
-    if not MY_KEY:
-        raise EnvironmentError("กรุณา set GROQ_API_KEY ใน environment variable")
+# # --- รันโปรแกรม ---
+# if __name__ == "__main__":
+#     MY_KEY = os.environ.get("GROQ_API_KEY")
+#     if not MY_KEY:
+#         raise EnvironmentError("กรุณา set GROQ_API_KEY ใน environment variable")
 
-    analyst = GroqTravelAnalyst(api_key=MY_KEY)
-    result = analyst.analyze_trip("อยากเที่ยวคาเฟ่ในกรุงเทพมหานคร ภายใน 1 วันออกตั้งแต่ 11:00 อยู่ใกล้ BTS กินมัทฉะร้านดัง ยันคาเฟ่ถ่ายรูป", n_samples=3, verify=True, evaluate=True)
-    print_result(result)
+#     analyst = GroqTravelAnalyst(api_key=MY_KEY)
+#     result = analyst.analyze_trip("อยากเที่ยวคาเฟ่ในกรุงเทพมหานคร ภายใน 1 วันออกตั้งแต่ 11:00 อยู่ใกล้ BTS กินมัทฉะร้านดัง ยันคาเฟ่ถ่ายรูป", n_samples=3, verify=True, evaluate=True)
+#     print_result(result)
