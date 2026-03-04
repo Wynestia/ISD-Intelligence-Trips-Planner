@@ -53,7 +53,6 @@ __pycache__/
 *.py[cod]
 
 # ─── Notebooks & Testing ──────────────────────────────
-notebooks/
 test/
 tests/
 .ipynb_checkpoints/

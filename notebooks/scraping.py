@@ -356,6 +356,53 @@ data4 = scrape_trueid("https://travel.trueid.net/detail/DerKpM90N71")
 data5 = scrape_wongnai("https://www.wongnai.com/trips/attractions-in-thailand")
 data6 = scrape_wongnai_cafe_bangkok("https://www.wongnai.com/listings/bangkok-must-go-cafe")
 
+# เพิ่มเว็บไซต์ใหม่ตามที่ร้องขอ
+data7 = scrape_wongnai_cafe_bangkok("https://www.wongnai.com/listings/places-to-visit-in-bangkok")
+data8 = scrape_trueid("https://food.trueid.net/detail/3e5PYAAg8Gjx")
+data9 = scrape_trueid("https://food.trueid.net/detail/9zJnWVOaLm9")
+data10 = scrape_trueid("https://food.trueid.net/detail/gK9B78M1Nbe")
+
+def scrape_tourismthailand(url):
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)"}
+    try:
+        res = requests.get(url, headers=headers, timeout=10)
+        soup = BeautifulSoup(res.text, "html.parser")
+    except:
+        return []
+        
+    results = []
+    
+    # Try finding typical route links in tourismthailand
+    links = soup.find_all("a", href=True)
+    for a in links:
+        title = a.get_text(strip=True)
+        if len(title) > 15 and ("วัน" in title or "คืน" in title or "เส้นทาง" in title):
+            results.append({
+                "title": title,
+                "details": f"เส้นทาง ท่องเที่ยว แนะนำ: {title}",
+                "url": url
+            })
+            
+    # If no structured links found, grab general paragraphs
+    if not results:
+        title = soup.title.string.strip() if soup.title else "บทความท่องเที่ยวภาคอีสาน"
+        description = ""
+        for tag in soup.find_all(["p", "h2", "h3", "li"]):
+            txt = tag.get_text(strip=True)
+            if len(txt) > 20 and "ติดต่อเรา" not in txt and "นโยบาย" not in txt:
+                description += txt + " "
+        
+        if description:
+            results.append({
+                "title": title,
+                "details": description.strip(),
+                "url": url
+            })
+            
+    return results
+
+data11 = scrape_tourismthailand("https://thai.tourismthailand.org/Articles/esan-routes-2024")
+
 import re
 
 def clean_text(text):
@@ -366,19 +413,12 @@ def clean_text(text):
     text = text.strip()
     return text
 
+datasets = [data1, data2, data3, data4, data5, data6, data7, data8, data9, data10, data11]
+
 # ทำความสะอาดข้อมูลที่ scrape มา
-for item in data1:
-    item["details"] = clean_text(item["details"])
-for item in data2:
-    item["details"] = clean_text(item["details"])
-for item in data3:
-    item["details"] = clean_text(item["details"])
-for item in data4:
-    item["details"] = clean_text(item["details"])
-for item in data5:
-    item["details"] = clean_text(item["details"])
-for item in data6:
-    item["details"] = clean_text(item["details"])
+for dataset in datasets:
+    for item in dataset:
+        item["details"] = clean_text(item["details"])
 
 def split_text(text, chunk_size=500, chunk_overlap=50):
     chunks = []
@@ -391,7 +431,7 @@ def split_text(text, chunk_size=500, chunk_overlap=50):
 
 chunks = []
 
-for dataset in [data1, data2, data3, data4, data5]:
+for dataset in datasets:
     for item in dataset:
         # text ใช้แค่ details ไม่เอา title ซ้ำ
         details_text = clean_text(item['details'])
