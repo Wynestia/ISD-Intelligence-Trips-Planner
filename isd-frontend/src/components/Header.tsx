@@ -1,9 +1,14 @@
-import { Link, useNavigate } from '@tanstack/react-router'
+import { Link, useNavigate, useRouterState } from '@tanstack/react-router'
 import { useState, useEffect, useCallback } from 'react'
-import { Home, Menu, X, User, LogOut } from 'lucide-react'
+import { Home, Menu, X, User, LogOut, MessageSquare } from 'lucide-react'
 
 export default function Header() {
   const [isOpen, setIsOpen] = useState(false)
+  const routerState = useRouterState()
+  const isChatPage = routerState.location.pathname === '/about'
+  const isPoptripPage = routerState.location.pathname.startsWith('/poptrip')
+  const isLifestylePage = routerState.location.pathname.startsWith('/lifestyle')
+  const isTransparentNav = isPoptripPage || isLifestylePage
   const [user, setUser] = useState<{ firstName: string } | null>(null)
   const navigate = useNavigate()
 
@@ -38,7 +43,11 @@ export default function Header() {
 
   return (
     <>
-      <header className="relative z-30 px-4 py-4 flex items-center bg-(--ivory-sand) text-(--burnt-sienna) shadow-md">
+      <header className={`relative z-30 px-4 py-4 flex items-center shadow-md transition-colors
+        ${isTransparentNav
+          ? 'absolute top-0 left-0 right-0 bg-transparent text-white shadow-none'
+          : 'bg-(--ivory-sand) text-(--burnt-sienna)'}`}
+      >
         <button
           onClick={() => setIsOpen(true)}
           className="p-2 hover:bg-white/20 rounded-lg transition-colors"
@@ -55,17 +64,21 @@ export default function Header() {
           {user ? (
             <>
               <div className="relative group flex items-center">
-                <div className="p-2 bg-(--ivory-sand) border border-(--burnt-sienna) rounded-full text-(--burnt-sienna) cursor-pointer">
+                <div className={`p-2 border rounded-full cursor-pointer
+                  ${isTransparentNav
+                    ? 'bg-white/20 border-white text-white'
+                    : 'bg-(--ivory-sand) border-(--burnt-sienna) text-(--burnt-sienna)'}`}
+                >
                   <User size={20} />
                 </div>
-                {/* Hover text */}
                 <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 w-max px-3 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
                   Hello {user.firstName}
                 </div>
               </div>
               <button
                 onClick={handleLogout}
-                className="relative flex items-center gap-1 text-sm font-medium hover:text-(--burnt-sienna)/60 transition-colors group"
+                className={`relative flex items-center gap-1 text-sm font-medium transition-colors group
+                  ${isTransparentNav ? 'text-white hover:text-white/70' : 'hover:text-(--burnt-sienna)/60'}`}
                 title="Log out"
               >
                 <LogOut size={20} />
@@ -77,7 +90,9 @@ export default function Header() {
               </button>
             </>
           ) : (
-            <Link to="/login" className="text-sm font-medium hover:text-(--burnt-sienna)/60 transition-colors">
+            <Link to="/login" className={`text-sm font-medium transition-colors
+              ${isTransparentNav ? 'text-white hover:text-white/70' : 'text-(--burnt-sienna) hover:text-(--burnt-sienna)/60'}`}
+            >
               Register/Login
             </Link>
           )}
@@ -113,7 +128,21 @@ export default function Header() {
             <span className="font-medium">Home</span>
           </Link>
 
-          {/* Add more links here if needed */}
+          {/* Chat link — hidden on the chat page itself */}
+          {!isChatPage && (
+            <Link
+              to="/about"
+              onClick={() => setIsOpen(false)}
+              className="flex items-center gap-3 p-3 rounded-lg hover:bg-(--ivory-sand) transition-colors mb-2"
+              activeProps={{
+                className:
+                  'flex items-center gap-3 p-3 rounded-lg bg-[var(--ivory-sand)] text-[var(--burnt-sienna)] font-bold transition-colors mb-2',
+              }}
+            >
+              <MessageSquare size={20} />
+              <span className="font-medium">Chat</span>
+            </Link>
+          )}
         </nav>
       </aside>
 
