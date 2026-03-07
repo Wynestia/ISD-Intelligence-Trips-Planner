@@ -13,12 +13,16 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from evaluation.judge import TripJudge
 
 class GroqTravelAnalyst:
-    def __init__(self, api_key: str, chroma_path: str = r"C:\Desktop\ISD\ISD-Intelligence-Trips-Planner\chroma_db"):
+    def __init__(self, api_key: str, chroma_path: str = None):
         self.client = Groq(api_key=api_key)
         self.api_key = api_key
         self.base_dir = os.path.dirname(
             os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         )
+        if chroma_path is None:
+            project_root = os.path.dirname(self.base_dir)
+            chroma_path = os.path.join(project_root, "chroma_db")
+        
         # Init FewShotSearchEngine
         examples_path = os.path.join(
             self.base_dir, 'prompts', 'experiment', 'examples.json'

@@ -3,7 +3,8 @@
 This document details the API endpoints for managing Users in the system.
 
 ## Base URL
-All endpoints are relative to the base URL (e.g., `http://localhost:3001`).
+All endpoints are relative to the base URL:
+`http://localhost:3123`
 
 ---
 

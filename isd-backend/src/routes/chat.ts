@@ -2,34 +2,47 @@ import { Elysia, t } from "elysia";
 import { jwt } from "@elysiajs/jwt";
 import { prisma } from "../libs/prisma";
 
-const SIMULATED_AI_REPLY = (userMsg: string) =>
-    JSON.stringify({
-        output: {
-            intent: "วางแผนทริป",
-            preferences: {
-                target_group: "ไม่ระบุ",
-                budget: null,
-                style: "ทั่วไป",
-            },
-            missing_info: [
-                "จุดหมายปลายทางที่ต้องการ",
-                "จำนวนวันที่ต้องการเดินทาง",
-                "งบประมาณโดยประมาณ",
-            ],
-            plan: [
-                { time: "09:00", location: "จุดเริ่มต้น", activity: `รับข้อมูลเพิ่มเติมสำหรับ: "${userMsg}"` },
-                { time: "—", location: "รอข้อมูล", activity: "กรุณาระบุรายละเอียดเพิ่มเติมเพื่อวางแผนให้ดียิ่งขึ้น" },
-            ],
-            reasoning: [
-                `ได้รับคำถาม: "${userMsg}"`,
-                "ระบบ AI ยังอยู่ระหว่างการพัฒนา — ตอบนี้เป็น Mock Response",
-            ],
-            tips: [
-                "ลองระบุจุดหมายปลายทางที่ต้องการเที่ยว",
-                "บอกจำนวนวันและงบประมาณเพื่อให้ได้แผนที่แม่นยำขึ้น",
-            ],
-        },
-    });
+const LLM_SERVICE_URL = process.env.LLM_SERVICE_URL || "http://localhost:8000";
+
+async function callLLMService(query: string, sessionId: string) {
+    try {
+        const response = await fetch(`${LLM_SERVICE_URL}/analyze`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                query,
+                session_id: sessionId,
+                n_samples: 3,
+                verify: true,
+                evaluate: true,
+            }),
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`LLM Service error: ${response.status} - ${errorText}`);
+        }
+
+        const data = await response.json();
+        return JSON.stringify(data);
+    } catch (error) {
+        console.error("Failed to call LLM service:", error);
+        return JSON.stringify({
+            error: "Failed to reach AI service. Please try again later.",
+            details: error instanceof Error ? error.message : String(error),
+        });
+    }
+}
+
+async function clearLLMSessionHistory(sessionId: string) {
+    try {
+        await fetch(`${LLM_SERVICE_URL}/history/${sessionId}`, {
+            method: "DELETE",
+        });
+    } catch (error) {
+        console.error("Failed to clear LLM session history:", error);
+    }
+}
 
 // Helper: extract & verify JWT from Authorization header
 const jwtPlugin = jwt({
@@ -101,6 +114,10 @@ export const chatRoutes = new Elysia({ prefix: "/chat" })
 
             await prisma.chatMessage.deleteMany({ where: { session_id: Number(id) } });
             await prisma.chatSession.delete({ where: { chat_id: Number(id) } });
+
+            // Sync with LLM service
+            await clearLLMSessionHistory(id.toString());
+
             set.status = 204;
             return null;
         },
@@ -152,7 +169,7 @@ export const chatRoutes = new Elysia({ prefix: "/chat" })
                 },
             });
 
-            const aiContent = SIMULATED_AI_REPLY(body.content);
+            const aiContent = await callLLMService(body.content, sessionId.toString());
             const aiMessage = await prisma.chatMessage.create({
                 data: {
                     session_id: sessionId,
