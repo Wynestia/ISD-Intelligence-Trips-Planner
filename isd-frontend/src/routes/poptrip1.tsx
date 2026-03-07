@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import trip1Hero from '../assets/poptrip/trip1-0.webp'
+import { useEffect, useRef, useState } from 'react'
 import trip1a from '../assets/poptrip/trip1-1.jpg'
 import trip1b from '../assets/poptrip/trip1-2.jpg'
 import trip1c from '../assets/poptrip/trip1-3.jpeg'
@@ -11,41 +11,136 @@ import trip1h from '../assets/poptrip/trip1-8.jpg'
 
 export const Route = createFileRoute('/poptrip1')({ component: PopTrip1 })
 
+// ── Scroll Reveal Hook ──────────────────────────────────────────────────
+function useScrollReveal(options?: IntersectionObserverInit) {
+    const ref = useRef<HTMLDivElement>(null)
+    const [visible, setVisible] = useState(false)
+    useEffect(() => {
+        const el = ref.current
+        if (!el) return
+        const observer = new IntersectionObserver(([entry]) => {
+            if (entry.isIntersecting) {
+                setVisible(true)
+                observer.disconnect()
+            }
+        }, { threshold: 0.12, ...options })
+        observer.observe(el)
+        return () => observer.disconnect()
+    }, [])
+    return { ref, visible }
+}
+
+// ── Reveal wrapper styles ───────────────────────────────────────────────
+const revealBase: React.CSSProperties = {
+    transition: 'opacity 1.1s ease, transform 1.1s ease',
+}
+const hidden = (tx = 0, ty = 40): React.CSSProperties => ({
+    opacity: 0,
+    transform: `translate(${tx}px, ${ty}px)`,
+})
+const show: React.CSSProperties = { opacity: 1, transform: 'translate(0,0)' }
+
+// ── Reveal component ────────────────────────────────────────────────────
+function Reveal({
+    children,
+    tx = 0,
+    ty = 40,
+    delay = 0,
+    className,
+}: {
+    children: React.ReactNode
+    tx?: number
+    ty?: number
+    delay?: number
+    className?: string
+    style?: React.CSSProperties
+}) {
+    const { ref, visible } = useScrollReveal()
+    return (
+        <div
+            ref={ref}
+            className={className}
+            style={{
+                ...revealBase,
+                transitionDelay: `${delay}ms`,
+                ...(visible ? show : hidden(tx, ty)),
+            }}
+        >
+            {children}
+        </div>
+    )
+}
+
+// ── Main Component ──────────────────────────────────────────────────────
 function PopTrip1() {
     return (
         <div className="relative min-h-screen bg-white">
 
             {/* ── Hero ── */}
             <section
-                className="w-full relative flex items-end justify-center -mt-20"
-                style={{ height: 650, backgroundImage: `url(${trip1Hero})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
+                className="w-full relative flex flex-col items-center justify-end -mt-20"
+                style={{ height: 650, backgroundImage: `url(${trip1e})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
             >
                 {/* gradient fade to white at bottom */}
                 <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, transparent 60%, white 100%)' }} />
+                {/* <div className="absolute inset-0" style={{
+                        background: `linear-gradient(
+                        to bottom,
+                        transparent 0%,
+                        rgba(255,255,255,0.05) 45%,
+                        rgba(255,255,255,0.15) 55%,
+                        rgba(255,255,255,0.35) 65%,
+                        rgba(255,255,255,0.55) 72%,
+                        rgba(255,255,255,0.72) 78%,
+                        rgba(255,255,255,0.85) 84%,
+                        rgba(255,255,255,0.93) 90%,
+                        rgba(255,255,255,0.97) 95%,
+                        white 100%
+                    )`
+                    }}/> */}
+                {/* Hero text – animates in on load */}
                 <h1
-                    className="relative z-10 text-gray-800 text-4xl font-bold tracking-wide pb-8"
-                    style={{ textShadow: '0 1px 3px rgba(255,255,255,0.8), 0 0 12px rgba(255,255,255,0.6)' }}
-                >เที่ยวธรรมชาติฟีล ๆ</h1>
+                    className="relative z-10 text-gray-600 text-4xl font-bold tracking-wide pb-2"
+                    style={{
+                        textShadow: '0 1px 3px rgba(255,255,255,0.8), 0 0 12px rgba(255,255,255,0.6)',
+                        animation: 'heroFadeUp 0.9s ease both',
+                    }}
+                >เที่ยวธรรมชาติใกล้กรุงเทพ</h1>
+                <h3
+                    className="relative z-10 text-gray-500 font-bold tracking-wide pb-8"
+                    style={{ animation: 'heroFadeUp 0.9s 0.2s ease both' }}
+                >สัมผัสธรรมชาติง่ายๆ ได้ใกล้ๆ กรุงเทพ</h3>
             </section>
+
+            {/* keyframes injected inline */}
+            <style>{`
+                @keyframes heroFadeUp {
+                    from { opacity: 0; transform: translateY(30px); }
+                    to   { opacity: 1; transform: translateY(0); }
+                }
+                img { transition: opacity 0.3s ease, transform 0.4s ease; }
+                img:hover { opacity: 0.82; transform: scale(1.01); }
+            `}</style>
 
             {/* ── Day Sections ── */}
             <div className="max-w-6xl mx-auto px-12 py-16 flex flex-col gap-28">
 
-                {/* ── DAY 01: timeline left, images right ── */}
+                {/* ── DAY 01 ── */}
                 <div>
                     {/* Day header */}
-                    <div className="flex flex-col items-start">
-                        <span className="font-extrabold text-[#d0d4d6]" style={{ fontSize: 110, letterSpacing: '-4px', lineHeight: 1 }}>01</span>
-                        <div className="flex items-center gap-2" style={{ marginTop: -6 }}>
-                            <div className="h-px w-12 bg-[#7DA2B6]" />
-                            <span className="text-sm text-[#7DA2B6] font-medium">Start day1</span>
+                    <Reveal ty={30}>
+                        <div className="flex flex-col items-start">
+                            <span className="font-extrabold text-[#d0d4d6]" style={{ fontSize: 110, letterSpacing: '-4px', lineHeight: 1 }}>01</span>
+                            <div className="flex items-center gap-2" style={{ marginTop: -6 }}>
+                                <div className="h-px w-12 bg-[#7DA2B6]" />
+                                <span className="text-sm text-[#7DA2B6] font-medium">Start day1</span>
+                            </div>
                         </div>
-                    </div>
+                    </Reveal>
 
                     <div className="flex gap-8 mt-6">
-                        {/* Timeline */}
-                        <div className="flex gap-5 shrink-0" style={{ width: '45%' }}>
-                            {/* Dots */}
+                        {/* Timeline – slides in from left */}
+                        <Reveal tx={-40} ty={0} delay={100} className="flex gap-5 shrink-0" style={{ width: '45%' } as React.CSSProperties}>
                             <div className="flex flex-col items-center pt-1">
                                 <div className="w-5 h-5 rounded-full bg-[#7DA2B6]" />
                                 <div className="w-0.5 bg-[#7DA2B6]" style={{ height: 120 }} />
@@ -53,7 +148,6 @@ function PopTrip1() {
                                 <div className="w-0.5 bg-[#7DA2B6]" style={{ height: 120 }} />
                                 <div className="w-5 h-5 rounded-full bg-[#7DA2B6]" />
                             </div>
-                            {/* Text */}
                             <div className="flex flex-col text-base text-gray-500">
                                 <div style={{ minHeight: 140 }}>
                                     <p className="font-semibold text-gray-700 text-lg">เช้า:</p>
@@ -68,61 +162,38 @@ function PopTrip1() {
                                     <p className="leading-relaxed">เข้าที่พักที่เขาใหญ่<br />suggest: B2 Khao Yai Premier Hotel</p>
                                 </div>
                             </div>
-                        </div>
+                        </Reveal>
 
-                        {/* Images */}
-                        <div className="flex flex-col gap-3 flex-1">
+                        {/* Images – slides in from right */}
+                        <Reveal tx={40} ty={0} delay={200} className="flex flex-col gap-3 flex-1">
                             <img src={trip1a} alt="day1-1" className="w-full object-cover rounded-xl" style={{ height: 380 }} />
                             <div className="flex gap-4">
                                 <img src={trip1b} alt="day1-2" className="flex-1 object-cover rounded-xl" style={{ height: 180 }} />
                                 <img src={trip1c} alt="day1-3" className="flex-1 object-cover rounded-xl" style={{ height: 180 }} />
                             </div>
-                        </div>
+                        </Reveal>
                     </div>
                 </div>
 
-                {/* ── DAY 02: images left, timeline right ── */}
+                {/* ── DAY 02 ── */}
                 <div className="flex gap-8 items-start">
-                    {/* images */}
-                    <div className="w-full max-w-xl mx-auto p-2">
-                        {/* items-stretch จะดึงให้ div ลูกทั้งสองฝั่งสูงเท่ากันเสมอ */}
+                    {/* Images – slides in from left */}
+                    <Reveal tx={-40} ty={0} delay={100} className="w-full max-w-xl mx-auto p-2 mt-40">
                         <div className="flex flex-row items-stretch gap-2">
-
-                            {/* รูปฝั่งซ้าย: กว้าง 60% */}
                             <div className="w-[60%]">
-                                <img
-                                    src={trip1d}
-                                    alt="Waterfall"
-                                    className="w-full h-full object-cover rounded-xl"
-                                />
+                                <img src={trip1d} alt="Waterfall" className="w-full h-full object-cover rounded-xl" />
                             </div>
-
-                            {/* รูปฝั่งขวา: กว้าง 40% (สูงเท่ากันด้วย h-full) */}
                             <div className="w-[40%]">
-                                <img
-                                    src={trip1f}
-                                    alt="Activity"
-                                    className="w-full h-full object-cover rounded-xl"
-                                />
+                                <img src={trip1f} alt="Activity" className="w-full h-full object-cover rounded-xl" />
                             </div>
                         </div>
                         <div className="w-full pt-2">
-                            <img
-                                src={trip1h} // เปลี่ยนเป็นตัวแปรชื่อรูปที่ต้องการ
-                                alt="Bottom Image"
-                                className="w-full aspect-[16/9] object-cover rounded-xl"
-                            />
+                            <img src={trip1h} alt="Bottom Image" className="w-full aspect-[16/9] object-cover rounded-xl" />
                         </div>
-                    </div>
-                    {/* <div className="flex flex-col gap-4 flex-1">
-                            <img src={trip1e} alt="day1-1" className="w-full object-cover rounded-xl" style={{ height: 380 }} />
-                            <div className="flex gap-4">
-                                <img src={trip1d} alt="day1-2" className="flex-1 object-cover rounded-xl" style={{ height: 180 }} />
-                                <img src={trip1f} alt="day1-3" className="flex-1 object-cover rounded-xl" style={{ height: 180 }} />
-                            </div> */}
-                    {/* Right side: header + timeline */}
-                    <div className="flex-1 pt-2">
-                        {/* Day header (right-aligned) */}
+                    </Reveal>
+
+                    {/* Right side: header + timeline – slides in from right */}
+                    <Reveal tx={40} ty={0} delay={200} className="flex-1 pt-2">
                         <div className="flex flex-col items-end">
                             <span className="font-extrabold text-[#d0d4d6]" style={{ fontSize: 110, letterSpacing: '-4px', lineHeight: 1 }}>02</span>
                             <div className="flex items-center gap-2 flex-row-reverse" style={{ marginTop: -6 }}>
@@ -130,11 +201,8 @@ function PopTrip1() {
                                 <span className="text-sm text-[#7DA2B6] font-medium">Start day2</span>
                             </div>
                         </div>
-
-                        {/* Timeline */}
                         <div className="flex gap-5 mt-6">
-                            {/* Dots */}
-                            <div className='pl-20'>
+                            <div className='pl-10'>
                                 <div className="flex flex-col items-center pt-1">
                                     <div className="w-5 h-5 rounded-full bg-[#7DA2B6]" />
                                     <div className="w-0.5 bg-[#7DA2B6]" style={{ height: 120 }} />
@@ -143,7 +211,6 @@ function PopTrip1() {
                                     <div className="w-5 h-5 rounded-full bg-[#7DA2B6]" />
                                 </div>
                             </div>
-                            {/* Text */}
                             <div className="flex flex-col text-base text-gray-500">
                                 <div style={{ minHeight: 140 }}>
                                     <p className="font-semibold text-gray-700 text-lg">เช้า – สาย:</p>
@@ -155,62 +222,45 @@ function PopTrip1() {
                                 </div>
                                 <div>
                                     <p className="font-semibold text-gray-700 text-lg">เย็น:</p>
-                                    <p className="leading-relaxed">ดินเนอร์สุดน่าจดจำที่ The<br />Castle Restaurant & Tea<br />Room และกลับที่พัก</p>
+                                    <p className="leading-relaxed">ดินเนอร์สุดน่าจดจำที่ The<br />Castle Restaurant &amp; Tea<br />Room และกลับที่พัก</p>
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    </Reveal>
                 </div>
 
-                {/* ── DAY 03: centered header + stop ── */}
+                {/* ── DAY 03 ── */}
                 <div>
-                    {/* Day header (centered) */}
-                    <div className="flex flex-col items-center">
-                        <span className="font-extrabold text-[#d0d4d6]" style={{ fontSize: 110, letterSpacing: '-4px', lineHeight: 1 }}>03</span>
-                        <div className="flex items-center gap-2" style={{ marginTop: -6 }}>
-                            <div className="h-px w-12 bg-[#7DA2B6]" />
-                            <span className="text-sm text-[#7DA2B6] font-medium">Start day3</span>
-                            <div className="h-px w-12 bg-[#7DA2B6]" />
+                    <Reveal ty={30}>
+                        <div className="flex flex-col items-center">
+                            <span className="font-extrabold text-[#d0d4d6]" style={{ fontSize: 110, letterSpacing: '-4px', lineHeight: 1 }}>03</span>
+                            <div className="flex items-center gap-2" style={{ marginTop: -6 }}>
+                                <div className="h-px w-12 bg-[#7DA2B6]" />
+                                <span className="text-sm text-[#7DA2B6] font-medium">Start day3</span>
+                                <div className="h-px w-12 bg-[#7DA2B6]" />
+                            </div>
                         </div>
-                    </div>
+                    </Reveal>
 
-                    <div className="flex gap-4 items-start mt-8">
-                        <div className="w-5 h-5 rounded-full bg-[#7DA2B6] shrink-0 mt-1" />
-                        <div className="text-base text-gray-500">
-                            <p className="font-semibold text-gray-700 text-lg">แวะที่ Pirom Cafe</p>
-                            <p className="leading-relaxed">กินอาหารเช้าสมัยที่บ้านสาว เขาใหญ่<br />และเดินทางกลับ</p>
+                    <Reveal ty={20} delay={150}>
+                        <div className="flex gap-4 items-start mt-8">
+                            <div className="w-5 h-5 rounded-full bg-[#7DA2B6] shrink-0 mt-1" />
+                            <div className="text-base text-gray-500">
+                                <p className="font-semibold text-gray-700 text-lg">แวะที่ Pirom Cafe</p>
+                                <p className="leading-relaxed">กินอาหารเช้าสมัยที่บ้านสาว เขาใหญ่<br />และเดินทางกลับ</p>
+                            </div>
                         </div>
-                    </div>
+                    </Reveal>
 
                     {/* Images for day 3 */}
-                    <div className="flex gap-4 mt-8">
-                        <img src={trip1f} alt="day3-1" className="flex-1 object-cover rounded-xl" style={{ height: 280 }} />
-                        <img src={trip1g} alt="day3-2" className="flex-1 object-cover rounded-xl" style={{ height: 280 }} />
-                    </div>
+                    <Reveal ty={30} delay={250}>
+                        <div className="flex gap-4 mt-8">
+                            <img src={trip1g} alt="day3-2" className="flex-1 object-cover rounded-xl" style={{ height: 480 }} />
+                        </div>
+                    </Reveal>
                 </div>
 
             </div>
-
-            {/* ── Footer ── */}
-            <footer className="bg-[#E4D6C5] py-8 px-10 mt-4">
-                <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center md:items-start justify-between gap-6">
-                    <span className="text-[#984216] font-extrabold text-lg tracking-widest">TRAVELTHAI</span>
-                    <div className="flex flex-col gap-1 text-right">
-                        <div className="flex gap-10 justify-end">
-                            <span className="text-[#984216] text-sm">Tamonpan Poonnotok</span>
-                            <span className="text-[#984216] text-sm w-16 text-right">66070085</span>
-                        </div>
-                        <div className="flex gap-10 justify-end">
-                            <span className="text-[#984216] text-sm">Saranya Kaewpipop</span>
-                            <span className="text-[#984216] text-sm w-16 text-right">66070210</span>
-                        </div>
-                        <div className="flex gap-10 justify-end">
-                            <span className="text-[#984216] text-sm">Adsadawut Thammawanit</span>
-                            <span className="text-[#984216] text-sm w-16 text-right">66070321</span>
-                        </div>
-                    </div>
-                </div>
-            </footer>
 
         </div>
     )

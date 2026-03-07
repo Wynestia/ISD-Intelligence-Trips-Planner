@@ -5,10 +5,21 @@ import { Home, Menu, X, User, LogOut, MessageSquare } from 'lucide-react'
 export default function Header() {
   const [isOpen, setIsOpen] = useState(false)
   const routerState = useRouterState()
-  const isChatPage = routerState.location.pathname === '/about'
-  const isPoptripPage = routerState.location.pathname.startsWith('/poptrip')
-  const isLifestylePage = routerState.location.pathname.startsWith('/lifestyle')
-  const isTransparentNav = isPoptripPage || isLifestylePage
+  const pathname = routerState.location.pathname
+
+  const isHomePage = pathname === '/'
+  const isChatPage = pathname === '/about'
+  const isPoptripPage = pathname.startsWith('/poptrip')
+  const isLifestylePage = pathname.startsWith('/lifestyle')
+
+  // Poptrip + Lifestyle: header should sit directly on top of the image
+  const isOverlayNav = isPoptripPage || isLifestylePage
+
+  // Only the home page (index) uses glass / transparent navigation + sidebar
+  const isGlassLayout = isHomePage
+
+  // Pages where nav content should be light-on-image (white text, glassy buttons)
+  const isLightNav = isHomePage || isOverlayNav
   const [user, setUser] = useState<{ firstName: string } | null>(null)
   const navigate = useNavigate()
 
@@ -43,14 +54,21 @@ export default function Header() {
 
   return (
     <>
-      <header className={`relative z-30 px-4 py-4 flex items-center shadow-md transition-colors
-        ${isTransparentNav
-          ? 'absolute top-0 left-0 right-0 bg-transparent text-white shadow-none'
-          : 'bg-(--ivory-sand) text-(--burnt-sienna)'}`}
+      <header
+        className={`relative z-30 px-4 py-3 bg-transparent flex items-center transition-all
+        ${isGlassLayout
+            ? 'absolute top-0 left-0 right-0 backdrop-blur-md text-white shadow-none border-b border-white/10'
+            : isOverlayNav
+              ? 'absolute top-0 left-0 right-0 bg-transparent text-white shadow-none border-b-0'
+              : 'bg-(--ivory-sand) text-(--burnt-sienna) shadow-sm border-b border-(--ivory-sand)'
+          }`}
       >
         <button
           onClick={() => setIsOpen(true)}
-          className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+          className={`p-2 rounded-lg transition-all border border-transparent 
+            ${isLightNav
+              ? 'hover:bg-white/15 hover:border-white/40'
+              : 'hover:bg-(--ivory-sand)/60 hover:border-(--burnt-sienna)/30'}`}
           aria-label="Open menu"
         >
           <Menu size={24} />
@@ -64,10 +82,11 @@ export default function Header() {
           {user ? (
             <>
               <div className="relative group flex items-center">
-                <div className={`p-2 border rounded-full cursor-pointer
-                  ${isTransparentNav
-                    ? 'bg-white/20 border-white text-white'
-                    : 'bg-(--ivory-sand) border-(--burnt-sienna) text-(--burnt-sienna)'}`}
+                <div
+                  className={`p-2 border rounded-full cursor-pointer
+                  ${isLightNav
+                      ? 'text-white border-white/60 bg-white/10 backdrop-blur-md hover:border-white hover:bg-white/20 transition-all'
+                      : 'bg-(--ivory-sand) border-(--burnt-sienna) text-(--burnt-sienna)'}`}
                 >
                   <User size={20} />
                 </div>
@@ -78,7 +97,7 @@ export default function Header() {
               <button
                 onClick={handleLogout}
                 className={`relative flex items-center gap-1 text-sm font-medium transition-colors group
-                  ${isTransparentNav ? 'text-white hover:text-white/70' : 'hover:text-(--burnt-sienna)/60'}`}
+                  ${isLightNav ? 'text-white hover:text-white/70' : 'hover:text-(--burnt-sienna)/60'}`}
                 title="Log out"
               >
                 <LogOut size={20} />
@@ -90,8 +109,12 @@ export default function Header() {
               </button>
             </>
           ) : (
-            <Link to="/login" className={`text-sm font-medium transition-colors
-              ${isTransparentNav ? 'text-white hover:text-white/70' : 'text-(--burnt-sienna) hover:text-(--burnt-sienna)/60'}`}
+            <Link
+              to="/login"
+              className={`text-sm font-bold font-medium px-3 py-1.5 rounded-full border border-transparent transition-all
+                ${isLightNav
+                  ? 'text-white hover:bg-gray-500/15 border-white/40 backdrop-blur-md'
+                  : 'text-(--burnt-sienna) hover:bg-white/70 hover:border-(--burnt-sienna)/40'}`}
             >
               Register/Login
             </Link>
@@ -100,14 +123,23 @@ export default function Header() {
       </header>
 
       <aside
-        className={`fixed top-0 left-0 h-full w-80 bg-white text-(--burnt-sienna) shadow-2xl z-50 transform transition-transform duration-300 ease-in-out flex flex-col ${isOpen ? 'translate-x-0' : '-translate-x-full'
-          }`}
+        className={`fixed top-0 left-0 h-full w-80 shadow-2xl z-50 transform transition-transform duration-300 ease-in-out flex flex-col
+          ${isOpen ? 'translate-x-0' : '-translate-x-full'}
+          ${isGlassLayout ? 'bg-white/10 text-white backdrop-blur-xl border-r border-white/20' : 'bg-white text-(--burnt-sienna)'}`}
       >
-        <div className="flex items-center justify-between p-4 border-b border-(--ivory-sand) bg-(--ivory-sand) text-(--burnt-sienna)">
+        <div
+          className={`flex items-center justify-between p-4 border-b
+            ${isGlassLayout
+              ? 'bg-white/10 border-white/20 text-white'
+              : 'bg-(--ivory-sand) border-(--ivory-sand) text-(--burnt-sienna)'}`}
+        >
           <h2 className="text-xl font-bold">TRAVELTHAI</h2>
           <button
             onClick={() => setIsOpen(false)}
-            className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+            className={`p-2 rounded-lg transition-all border border-transparent 
+              ${isGlassLayout
+                ? 'hover:bg-white/20 hover:border-white/50'
+                : 'hover:bg-(--ivory-sand)/60 hover:border-(--burnt-sienna)/30'}`}
             aria-label="Close menu"
           >
             <X size={24} />
@@ -118,10 +150,15 @@ export default function Header() {
           <Link
             to="/"
             onClick={() => setIsOpen(false)}
-            className="flex items-center gap-3 p-3 rounded-lg hover:bg-(--ivory-sand) transition-colors mb-2"
+            className={`flex items-center gap-3 p-3 rounded-lg mb-2 border border-transparent transition-all
+              ${isGlassLayout
+                ? 'hover:bg-white/15 hover:border-white/40'
+                : 'hover:bg-(--ivory-sand)'}`}
             activeProps={{
               className:
-                'flex items-center gap-3 p-3 rounded-lg bg-[var(--ivory-sand)] text-[var(--burnt-sienna)] font-bold transition-colors mb-2',
+                isGlassLayout
+                  ? 'flex items-center gap-3 p-3 rounded-lg bg-white/20 border border-white/60 text-white font-bold transition-all mb-2'
+                  : 'flex items-center gap-3 p-3 rounded-lg bg-[var(--ivory-sand)] text-[var(--burnt-sienna)] font-bold transition-colors mb-2',
             }}
           >
             <Home size={20} />
@@ -133,10 +170,15 @@ export default function Header() {
             <Link
               to="/about"
               onClick={() => setIsOpen(false)}
-              className="flex items-center gap-3 p-3 rounded-lg hover:bg-(--ivory-sand) transition-colors mb-2"
+              className={`flex items-center gap-3 p-3 rounded-lg mb-2 border border-transparent transition-all
+                ${isGlassLayout
+                  ? 'hover:bg-white/15 hover:border-white/40'
+                  : 'hover:bg-(--ivory-sand)'}`}
               activeProps={{
                 className:
-                  'flex items-center gap-3 p-3 rounded-lg bg-[var(--ivory-sand)] text-[var(--burnt-sienna)] font-bold transition-colors mb-2',
+                  isGlassLayout
+                    ? 'flex items-center gap-3 p-3 rounded-lg bg-white/20 border border-white/60 text-white font-bold transition-all mb-2'
+                    : 'flex items-center gap-3 p-3 rounded-lg bg-[var(--ivory-sand)] text-[var(--burnt-sienna)] font-bold transition-colors mb-2',
               }}
             >
               <MessageSquare size={20} />
@@ -156,3 +198,4 @@ export default function Header() {
     </>
   )
 }
+
