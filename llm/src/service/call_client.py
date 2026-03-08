@@ -5,6 +5,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from groq import Groq
 from fewshot_search import FewShotSearchEngine
 from history_management import HistoryManagement
+# from model_io_logger import log_model_io
 from rag_retriever import TravelRAGRetriever
 from weather_service import get_weather_summary
 
@@ -120,6 +121,13 @@ class GroqTravelAnalyst:
                 temperature=temperature
             )
             reply = completion.choices[0].message.content
+            # log_model_io(
+            #     model=model,
+            #     system_prompt=system_prompt,
+            #     user_prompt=user_prompt,
+            #     response_text=reply,
+            #     phase="json_strict",
+            # )
             return self._normalize_json_reply(reply)
         except Exception as strict_error:
             print(f"⚠️ Strict JSON generation failed, retrying with fallback: {strict_error}")
@@ -138,6 +146,13 @@ class GroqTravelAnalyst:
                 temperature=max(0.1, min(temperature, 0.3))
             )
             fallback_reply = fallback_completion.choices[0].message.content
+            # log_model_io(
+            #     model=model,
+            #     system_prompt=fallback_system,
+            #     user_prompt=user_prompt,
+            #     response_text=fallback_reply,
+            #     phase="json_fallback",
+            # )
             return self._normalize_json_reply(fallback_reply)
 
     def _normalize_json_reply(self, reply: str) -> str:
@@ -206,7 +221,15 @@ class GroqTravelAnalyst:
             ],
             temperature=temperature
         )
-        return completion.choices[0].message.content
+        reply = completion.choices[0].message.content
+        # log_model_io(
+        #     model=model,
+        #     system_prompt=system_prompt,
+        #     user_prompt=user_prompt,
+        #     response_text=reply,
+        #     phase="raw_completion",
+        # )
+        return reply
 
     def analyze_trip(self, user_query: str, n_samples: int = 3, verify: bool = True, evaluate: bool = True, session_id: str = "default", rag_top_k: int = 5) -> dict:
         system_prompt = self._load_prompt('system_prompt.txt')
