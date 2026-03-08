@@ -46,16 +46,12 @@ cd <project-folder>
 
 # 1. Setup LLM Environment
 
-เข้าไปที่โฟลเดอร์ LLM
-
-```
-cd llm
-```
-
 รันสคริปต์เพื่อติดตั้ง environment
 
 ```
 bash setup.sh
+or
+.\setup_venv.bat\
 ```
 
 สคริปต์จะทำ
@@ -65,6 +61,13 @@ bash setup.sh
 * install dependencies จาก `requirements.txt`
 
 ---
+
+จากนั้นใส่ API KEY
+
+GROQ_API_KEY=your_groq_api_key_here
+OPENWEATHERMAP_API_KEY=your_openweathermap_api_key_here
+
+(API key ส่งผ่านแชทส่วนตัว)
 
 # 2. Setup Backend
 
@@ -83,6 +86,8 @@ npm install
 ```
 
 ---
+
+# 
 
 # Running the System
 
