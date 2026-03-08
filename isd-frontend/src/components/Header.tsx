@@ -15,8 +15,8 @@ export default function Header() {
   // Poptrip + Lifestyle: header should sit directly on top of the image
   const isOverlayNav = isPoptripPage || isLifestylePage
 
-  // Only the home page (index) uses glass / transparent navigation + sidebar
-  const isGlassLayout = isHomePage
+  // Home + Poptrip + Lifestyle use glass / transparent navigation + sidebar
+  const isGlassLayout = isHomePage || isPoptripPage || isLifestylePage
 
   // Pages where nav content should be light-on-image (white text, glassy buttons)
   const isLightNav = isHomePage || isOverlayNav
@@ -198,4 +198,3 @@ export default function Header() {
     </>
   )
 }
-

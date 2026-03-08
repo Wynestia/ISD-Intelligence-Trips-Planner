@@ -25,8 +25,15 @@ class TravelRAGRetriever:
         # เชื่อมต่อ ChromaDB
         print(f"🗄️ Connecting to ChromaDB at: {chroma_path}")
         self.client = chromadb.PersistentClient(path=chroma_path)
-        self.collection = self.client.get_collection(collection_name)
-        print(f"✅ Connected! Collection has {self.collection.count()} chunks")
+        self.collection = self.client.get_or_create_collection(collection_name)
+        count = self.collection.count()
+        if count == 0:
+            print(
+                f"⚠️ Collection '{collection_name}' is empty. "
+                "RAG context will be skipped until data is indexed."
+            )
+        else:
+            print(f"✅ Connected! Collection has {count} chunks")
 
     def retrieve(self, query: str, top_k: Optional[int] = None) -> list[dict]:
         """
@@ -36,16 +43,22 @@ class TravelRAGRetriever:
             list of dicts: [{"text": ..., "source": ..., "distance": ...}]
         """
         k = top_k or self.top_k
+        if self.collection.count() == 0:
+            return []
 
         # Embed query
         query_embedding = self.embed_model.encode([query])[0].tolist()
 
         # Query ChromaDB
-        results = self.collection.query(
-            query_embeddings=[query_embedding],
-            n_results=k,
-            include=["documents", "metadatas", "distances"],
-        )
+        try:
+            results = self.collection.query(
+                query_embeddings=[query_embedding],
+                n_results=k,
+                include=["documents", "metadatas", "distances"],
+            )
+        except Exception as e:
+            print(f"⚠️ RAG query failed, skipping context: {e}")
+            return []
 
         # จัดรูปแบบผลลัพธ์
         retrieved = []

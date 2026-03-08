@@ -1,0 +1,7 @@
+node_modules
+generated
+dist
+*.log
+.env
+.env.*
+!.env.example
